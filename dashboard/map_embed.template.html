@@ -3,12 +3,23 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/openlayers/3.19.1/ol.css" />
 <style>
   :root{ --solar:#c98a2b; --onshore:#4a7c59; --offshore:#3f6b8c; --misc:#8a9199;
     --ink:#1a1f24; --sub:#5b636b; --muted:#889098; --panel:#fff; --line:#e2e5e8; --line2:#eceef0; }
   *{ box-sizing:border-box; }
   html,body{ margin:0; height:100%; font-family:"Pretendard","Malgun Gothic",system-ui,sans-serif; }
   #map{ width:100vw; height:100vh; min-width:100%; background:#e6ebf0; }
+  /* 줌 버튼 (+/−) — 좌상단, 무채색 미니멀 */
+  .ol-zoom{ position:absolute; left:12px; top:12px; display:flex; flex-direction:column; gap:2px; }
+  .ol-zoom button{ width:30px; height:30px; font-size:18px; line-height:1; color:var(--sub);
+    background:rgba(255,255,255,.95); border:1px solid var(--line); border-radius:6px; cursor:pointer;
+    box-shadow:0 1px 4px rgba(20,25,30,.08); padding:0; }
+  .ol-zoom button:hover{ background:#eef1f4; color:var(--ink); }
+  .ol-scale-line{ position:absolute; left:12px; bottom:12px; background:rgba(255,255,255,.9);
+    border:1px solid var(--line); border-radius:4px; padding:1px 6px; }
+  .ol-scale-line-inner{ color:var(--sub); font-size:10px; border-color:var(--sub); border-top:none;
+    border-left:1px solid var(--sub); border-right:1px solid var(--sub); }
   .map-legend{ position:absolute; right:12px; top:12px; background:rgba(255,255,255,.95);
     border:1px solid var(--line); border-radius:6px; padding:8px 12px; display:flex;
     flex-direction:column; gap:6px; font-size:11.5px; color:var(--sub);
@@ -106,7 +117,10 @@ function buildMap(){
   olMap=new ol.Map({target:"map",
     layers:[ ...basemapLayers(BASEMAP), new ol.layer.Vector({source:src,zIndex:999}) ],
     view:new ol.View({center:ol.proj.fromLonLat([126.5,34.6]), zoom:9, minZoom:6, maxZoom:19}),
-    controls:[] });
+    // 줌 버튼(+/−) + 축척바. 마우스 휠·더블클릭·드래그 확대축소는 기본 인터랙션.
+    controls: ol.control.defaults({attribution:false, rotate:false})
+      .extend([ new ol.control.ScaleLine() ]),
+    interactions: ol.interaction.defaults() });
   window.__olMap=olMap;
   overlay=new ol.Overlay({element:document.getElementById("popup"),positioning:"bottom-center",stopEvent:true,offset:[0,-6]});
   olMap.addOverlay(overlay);
