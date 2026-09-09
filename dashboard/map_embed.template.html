@@ -84,11 +84,9 @@ function showPopup(p){
 }
 function hidePopup(){const el=document.getElementById("popup"); if(el)el.hidden=true; if(overlay)overlay.setPosition(undefined);}
 
-function buildMap(attempt){
-  attempt=attempt||0;
+function buildMap(){
   if(typeof vw==="undefined"||!vw.ol3||!vw.ol3.Map){
-    if(attempt>40){document.getElementById("map").innerHTML='<div class="nodata">VWorld 지도를 불러오지 못했습니다.<br>키·도메인 등록을 확인하세요.</div>';return;}
-    return setTimeout(()=>buildMap(attempt+1),250);
+    document.getElementById("map").innerHTML='<div class="nodata">VWorld 지도를 불러오지 못했습니다.<br>키·도메인 등록을 확인하세요.</div>';return;
   }
   const bt={"photo-hybrid":vw.ol3.BasemapType.PHOTO_HYBRID,"photo":vw.ol3.BasemapType.PHOTO,
     "graphic":vw.ol3.BasemapType.GRAPHIC,"graphic-gray":vw.ol3.BasemapType.GRAPHIC_GRAY}[BASEMAP]||vw.ol3.BasemapType.PHOTO_HYBRID;
@@ -103,16 +101,24 @@ function buildMap(attempt){
   olMap.addOverlay(overlay);
   const CENTER=ol.proj.transform([126.5,34.6],WGS84,proj), ZOOM=9;
   function fitView(){ olMap.getView().setCenter(CENTER); olMap.getView().setZoom(ZOOM); olMap.updateSize(); }
-  fitView();
-  // iframe 크기 확정 전 초기화되면 줌이 어긋나므로, 렌더 후 재보정 + 리사이즈 대응
-  setTimeout(fitView,300); setTimeout(fitView,900);
+  olMap.updateSize(); fitView();
   window.addEventListener("resize",()=>{ olMap.updateSize(); });
   olMap.on("click",evt=>{
     let hit=null; olMap.forEachFeatureAtPixel(evt.pixel,f=>{if(f.get("pid")){hit=f;return true;}});
     if(hit){const p=PLANTS.find(x=>x.id===hit.get("pid")); if(p)showPopup(p);} else hidePopup();
   });
   olMap.on("pointermove",evt=>{olMap.getTargetElement().style.cursor=olMap.hasFeatureAtPixel(evt.pixel)?"pointer":"";});
-  drawMarkers(); renderLegend();
+  renderLegend();
+  // 마커는 지도 렌더가 안정된 뒤 추가한다(렌더 전 추가 시 렌더러 공간인덱스 rbush
+  // 오류). postrender 가 안 뜨는 환경이 있어 시간차 재시도로 확실히 그린다.
+  let tries=0;
+  (function addMarkers(){
+    tries++;
+    try{ olMap.updateSize(); fitView(); drawMarkers(); }
+    catch(e){ if(tries<8) return setTimeout(addMarkers,400); }
+    if(src.getFeatures().length===0 && tries<8) setTimeout(addMarkers,400);
+  })();
+  setTimeout(()=>{ try{olMap.updateSize();fitView();}catch(e){} }, 1500);
 }
 // VWorld 지도 엔진을 https 로 직접 순서 로드 (document.write 미사용 → Streamlit
 // srcdoc iframe + https 환경에서 동작). vworldMapInit 이 vw+키를 이미 세팅해 둔다.
@@ -121,6 +127,16 @@ function loadScript(src){
     s.src=src; s.async=false; s.onload=ok; s.onerror=()=>no(src);
     document.head.appendChild(s); });
 }
+function waitForWidth(el, minW, tries){
+  return new Promise(ok=>{
+    let n=0;
+    (function check(){
+      if(el.offsetWidth>=minW || n++>tries) return ok(el.offsetWidth);
+      setTimeout(check,120);
+    })();
+  });
+}
+let _built=false;
 async function bootstrap(){
   const B="https://map.vworld.kr";
   try{
@@ -131,7 +147,10 @@ async function bootstrap(){
     document.getElementById("map").innerHTML=
       '<div class="nodata">지도 엔진 로드 실패<br>('+e+')</div>'; return;
   }
-  buildMap();
+  // 지도 div 너비가 확보된 뒤 초기화 (iframe 크기 확정 전 생성되면 렌더러 인덱스가
+  // 깨져 마커 추가 시 rbush 오류가 난다). 최대 ~6초 대기.
+  await waitForWidth(document.getElementById("map"), 200, 50);
+  if(!_built){ _built=true; buildMap(); }
 }
 window.addEventListener("load",bootstrap);
 </script>
