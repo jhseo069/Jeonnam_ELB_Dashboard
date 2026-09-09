@@ -144,8 +144,10 @@ if not VWORLD_KEY:
 else:
     map_cols = ["id", "name", "src", "region", "sgg", "operator",
                 "mw", "firstPermit", "round", "lat", "lon"]
-    slim = fdf[[c for c in map_cols if c in fdf.columns]].where(pd.notna(fdf), None)
-    plants_json = json.dumps(slim.to_dict("records"), ensure_ascii=False)
+    slim = fdf[[c for c in map_cols if c in fdf.columns]]
+    # pandas to_json 이 NaN→null 로 올바르게 직렬화한다. json.dumps 는 NaN 을
+    # 그대로 내보내 브라우저에서 좌표가 NaN 이 되고 마커 생성이 실패한다.
+    plants_json = slim.to_json(orient="records", force_ascii=False)
     html = (MAP_TEMPLATE.read_text(encoding="utf-8")
             .replace("__VWORLD_KEY__", VWORLD_KEY)
             .replace("__VWORLD_DOMAIN__", VWORLD_DOMAIN)

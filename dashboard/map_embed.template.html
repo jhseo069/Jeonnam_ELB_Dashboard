@@ -66,8 +66,8 @@ function iconStyle(color){return new ol.style.Style({image:new ol.style.Circle({
 function drawMarkers(){
   src.clear();
   PLANTS.forEach(p=>{
-    if(p.lat==null||p.lon==null) return;
-    const f=new ol.Feature({geometry:new ol.geom.Point(ol.proj.transform([p.lon,p.lat],WGS84,proj))});
+    if(p.lat==null||p.lon==null||!isFinite(p.lat)||!isFinite(p.lon)) return;
+    const f=new ol.Feature({geometry:new ol.geom.Point(ol.proj.fromLonLat([p.lon,p.lat]))});
     f.setStyle(iconStyle(COLORS[p.src]||"#8a9199")); f.set("pid",p.id); src.addFeature(f);
   });
 }
@@ -81,7 +81,7 @@ function showPopup(p){
     row("사업주체",esc(p.operator||"—"))+row("최초허가",esc(p.firstPermit||"—"))+
     row("최근 심의",p.round?`제${esc(p.round)}차`:"")+`</div>`;
   el.hidden=false;
-  if(p.lat!=null&&overlay) overlay.setPosition(ol.proj.transform([p.lon,p.lat],WGS84,proj));
+  if(p.lat!=null&&isFinite(p.lat)&&overlay) overlay.setPosition(ol.proj.fromLonLat([p.lon,p.lat]));
 }
 function hidePopup(){const el=document.getElementById("popup"); if(el)el.hidden=true; if(overlay)overlay.setPosition(undefined);}
 
