@@ -58,10 +58,18 @@ def get_secret(name: str, default: str = "") -> str:
     return default
 
 
+def clean_domain(raw: str) -> str:
+    """VWorld domain 파라미터용으로 정규화: 프로토콜·끝 슬래시 제거.
+    Secrets 에 'https://xxx.streamlit.app/' 처럼 넣어도 'xxx.streamlit.app' 로 맞춘다."""
+    d = (raw or "").strip()
+    d = d.replace("https://", "").replace("http://", "")
+    return d.rstrip("/")
+
+
 plants, meta = load_data()
 df = pd.DataFrame(plants)
-VWORLD_KEY = get_secret("VWORLD_API_KEY")
-VWORLD_DOMAIN = get_secret("VWORLD_DOMAIN", "localhost")
+VWORLD_KEY = get_secret("VWORLD_API_KEY").strip()
+VWORLD_DOMAIN = clean_domain(get_secret("VWORLD_DOMAIN", "localhost"))
 
 
 # ── 사이드바 필터 ───────────────────────────────────────────────────
