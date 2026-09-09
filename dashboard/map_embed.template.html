@@ -94,6 +94,10 @@ function buildMap(){
     interactionDensity:vw.ol3.DensityType.BASIC,controlsAutoArrange:true,
     homePosition:vw.ol3.CameraPosition,initPosition:vw.ol3.CameraPosition};
   olMap=new vw.ol3.Map("map",vw.ol3.MapOptions);
+  window.__olMap=olMap; window.__bt=bt;          // 디버깅용 노출
+  // 생성자 옵션만으로 배경이 안 바뀌는 경우가 있어 명시적으로 재설정한다.
+  try{ olMap.setBasemapType(bt); }catch(e){}
+  setTimeout(()=>{ try{ olMap.setBasemapType(bt); olMap.updateSize(); }catch(e){} }, 600);
   proj=olMap.getView().getProjection();
   src=new ol.source.Vector();
   olMap.addLayer(new ol.layer.Vector({source:src,zIndex:999}));
