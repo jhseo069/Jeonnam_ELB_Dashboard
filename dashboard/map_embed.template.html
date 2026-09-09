@@ -39,12 +39,13 @@
 <div class="map-legend" id="legend"></div>
 <div class="map-popup" id="popup" hidden style="position:absolute"></div>
 
-<!-- 키 바인딩용 초기화(vw 네임스페이스 + 인증). 이 스크립트가 내부에서 http로
-     document.write 하는 OpenLayers 등은 https·srcdoc 환경에서 막히므로, 아래에서
-     ol.js·2D 지도클래스를 https 로 직접 순서 로드한다(document.write 회피). -->
-<script src="https://map.vworld.kr/js/vworldMapInit.js.do?version=2.0&apiKey=__VWORLD_KEY__&domain=__VWORLD_DOMAIN__"></script>
+<!-- VWorld JS 지도라이브러리(vworldMapInit/2DMapClassInit)는 https·srcdoc 환경에서
+     document.write·OSM 폴백 문제가 있어 쓰지 않는다. 대신 순수 OpenLayers 로 지도를
+     만들고 VWorld WMTS 타일(위성/일반/지명)을 직접 붙인다. 키 인증은 타일 요청 시
+     도메인(Referer)으로 확인된다. -->
 <script>
 const PLANTS = __PLANTS_JSON__;
+const VWORLD_KEY = "__VWORLD_KEY__";
 const BASEMAP = "__BASEMAP__";
 const COLORS = {태양광:"#c98a2b","육상풍력":"#4a7c59","해상풍력":"#3f6b8c","풍력_구분미상":"#8a9199","복합_검수필요":"#8a9199"};
 const SRC_ORDER = ["태양광","육상풍력","해상풍력","풍력_구분미상","복합_검수필요"];
@@ -84,26 +85,32 @@ function showPopup(p){
 }
 function hidePopup(){const el=document.getElementById("popup"); if(el)el.hidden=true; if(overlay)overlay.setPosition(undefined);}
 
+// VWorld WMTS 타일 레이어 (키는 URL 에, 인증은 도메인으로). Base/Satellite/Hybrid.
+function vworldTile(layer, ext){
+  return new ol.layer.Tile({source:new ol.source.XYZ({
+    url:`https://api.vworld.kr/req/wmts/1.0.0/${VWORLD_KEY}/${layer}/{z}/{y}/{x}.${ext}`,
+    crossOrigin:"anonymous", attributions:'© VWorld' })});
+}
+function basemapLayers(type){
+  if(type==="photo") return [vworldTile("Satellite","jpeg")];
+  if(type==="graphic"||type==="graphic-gray") return [vworldTile("Base","png")];
+  return [vworldTile("Satellite","jpeg"), vworldTile("Hybrid","png")];  // photo-hybrid 기본
+}
+
 function buildMap(){
-  if(typeof vw==="undefined"||!vw.ol3||!vw.ol3.Map){
-    document.getElementById("map").innerHTML='<div class="nodata">VWorld 지도를 불러오지 못했습니다.<br>키·도메인 등록을 확인하세요.</div>';return;
+  if(typeof ol==="undefined"){
+    document.getElementById("map").innerHTML='<div class="nodata">지도 엔진(OpenLayers)을 불러오지 못했습니다.</div>';return;
   }
-  const bt={"photo-hybrid":vw.ol3.BasemapType.PHOTO_HYBRID,"photo":vw.ol3.BasemapType.PHOTO,
-    "graphic":vw.ol3.BasemapType.GRAPHIC,"graphic-gray":vw.ol3.BasemapType.GRAPHIC_GRAY}[BASEMAP]||vw.ol3.BasemapType.PHOTO_HYBRID;
-  vw.ol3.MapOptions={basemapType:bt,controlDensity:vw.ol3.DensityType.EMPTY,
-    interactionDensity:vw.ol3.DensityType.BASIC,controlsAutoArrange:true,
-    homePosition:vw.ol3.CameraPosition,initPosition:vw.ol3.CameraPosition};
-  olMap=new vw.ol3.Map("map",vw.ol3.MapOptions);
-  window.__olMap=olMap; window.__bt=bt;          // 디버깅용 노출
-  // 생성자 옵션만으로 배경이 안 바뀌는 경우가 있어 명시적으로 재설정한다.
-  try{ olMap.setBasemapType(bt); }catch(e){}
-  setTimeout(()=>{ try{ olMap.setBasemapType(bt); olMap.updateSize(); }catch(e){} }, 600);
-  proj=olMap.getView().getProjection();
+  proj="EPSG:3857";
   src=new ol.source.Vector();
-  olMap.addLayer(new ol.layer.Vector({source:src,zIndex:999}));
+  olMap=new ol.Map({target:"map",
+    layers:[ ...basemapLayers(BASEMAP), new ol.layer.Vector({source:src,zIndex:999}) ],
+    view:new ol.View({center:ol.proj.fromLonLat([126.5,34.6]), zoom:9, minZoom:6, maxZoom:19}),
+    controls:[] });
+  window.__olMap=olMap;
   overlay=new ol.Overlay({element:document.getElementById("popup"),positioning:"bottom-center",stopEvent:true,offset:[0,-6]});
   olMap.addOverlay(overlay);
-  const CENTER=ol.proj.transform([126.5,34.6],WGS84,proj), ZOOM=9;
+  const CENTER=ol.proj.fromLonLat([126.5,34.6]), ZOOM=9;
   function fitView(){ olMap.getView().setCenter(CENTER); olMap.getView().setZoom(ZOOM); olMap.updateSize(); }
   olMap.updateSize(); fitView();
   window.addEventListener("resize",()=>{ olMap.updateSize(); });
@@ -124,8 +131,8 @@ function buildMap(){
   })();
   setTimeout(()=>{ try{olMap.updateSize();fitView();}catch(e){} }, 1500);
 }
-// VWorld 지도 엔진을 https 로 직접 순서 로드 (document.write 미사용 → Streamlit
-// srcdoc iframe + https 환경에서 동작). vworldMapInit 이 vw+키를 이미 세팅해 둔다.
+// OpenLayers 만 https 로 로드한다(VWorld ol.js = OL 3.19.1). VWorld JS 지도
+// 라이브러리는 쓰지 않으므로 document.write·OSM 폴백 문제가 원천 발생하지 않는다.
 function loadScript(src){
   return new Promise((ok,no)=>{ const s=document.createElement("script");
     s.src=src; s.async=false; s.onload=ok; s.onerror=()=>no(src);
@@ -142,17 +149,14 @@ function waitForWidth(el, minW, tries){
 }
 let _built=false;
 async function bootstrap(){
-  const B="https://map.vworld.kr";
   try{
-    if(typeof jQuery==="undefined") await loadScript(B+"/jquery/ol3/jquery-1.11.3.min.js");
-    if(typeof ol==="undefined")     await loadScript(B+"/js/map/OpenLayers-3.10.1/ol.js");
-    await loadScript(B+"/js/vw.ol3.2DMapClassInit_v30.min.js");
+    if(typeof ol==="undefined")
+      await loadScript("https://map.vworld.kr/js/map/OpenLayers-3.10.1/ol.js");
   }catch(e){
     document.getElementById("map").innerHTML=
-      '<div class="nodata">지도 엔진 로드 실패<br>('+e+')</div>'; return;
+      '<div class="nodata">지도 엔진(OpenLayers) 로드 실패<br>('+e+')</div>'; return;
   }
-  // 지도 div 너비가 확보된 뒤 초기화 (iframe 크기 확정 전 생성되면 렌더러 인덱스가
-  // 깨져 마커 추가 시 rbush 오류가 난다). 최대 ~6초 대기.
+  // 지도 div 너비 확보 후 초기화 (iframe 크기 확정 전 생성 시 렌더러 인덱스 오류 방지)
   await waitForWidth(document.getElementById("map"), 200, 50);
   if(!_built){ _built=true; buildMap(); }
 }
