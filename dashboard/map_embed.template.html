@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  :root{ --solar:#c98a2b; --onshore:#4a7c59; --offshore:#3f6b8c; --misc:#8a9199;
+    --ink:#1a1f24; --sub:#5b636b; --muted:#889098; --panel:#fff; --line:#e2e5e8; --line2:#eceef0; }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; height:100%; font-family:"Pretendard","Malgun Gothic",system-ui,sans-serif; }
+  #map{ width:100%; height:100vh; background:#e6ebf0; }
+  .map-legend{ position:absolute; right:12px; top:12px; background:rgba(255,255,255,.95);
+    border:1px solid var(--line); border-radius:6px; padding:8px 12px; display:flex;
+    flex-direction:column; gap:6px; font-size:11.5px; color:var(--sub);
+    box-shadow:0 1px 8px rgba(20,25,30,.08); z-index:3; }
+  .map-legend .li{ display:inline-flex; align-items:center; gap:7px; }
+  .sw{ width:9px; height:9px; border-radius:50%; display:inline-block; }
+  .map-popup{ min-width:220px; max-width:260px; background:var(--panel); border:1px solid var(--line);
+    border-radius:8px; box-shadow:0 6px 24px rgba(20,25,30,.16); font-size:12.5px; color:var(--ink); }
+  .map-popup::after{ content:""; position:absolute; left:50%; bottom:-7px; width:12px; height:12px;
+    background:var(--panel); border-right:1px solid var(--line); border-bottom:1px solid var(--line);
+    transform:translateX(-50%) rotate(45deg); }
+  .pop-head{ display:flex; gap:8px; padding:11px 12px 8px; border-bottom:1px solid var(--line2); }
+  .pop-title{ font-weight:700; font-size:13px; line-height:1.35; flex:1; }
+  .pop-close{ border:none; background:none; color:var(--muted); font-size:16px; cursor:pointer; }
+  .pop-body{ padding:8px 12px 11px; }
+  .pop-row{ display:flex; justify-content:space-between; gap:10px; padding:2px 0; }
+  .pop-row .k{ color:var(--muted); font-size:11.5px; }
+  .pop-row .v{ text-align:right; }
+  .tag{ display:inline-flex; align-items:center; gap:5px; padding:1px 7px; border-radius:20px;
+    font-size:11px; font-weight:600; border:1px solid currentColor; }
+  .tag .sw{ width:6px; height:6px; }
+  .nodata{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    color:#889098; font-size:14px; text-align:center; padding:40px; }
+</style>
+</head>
+<body>
+<div id="map"></div>
+<div class="map-legend" id="legend"></div>
+<div class="map-popup" id="popup" hidden style="position:absolute"></div>
+
+<script src="https://map.vworld.kr/js/vworldMapInit.js.do?version=2.0&apiKey=__VWORLD_KEY__&domain=__VWORLD_DOMAIN__"></script>
+<script>
+const PLANTS = __PLANTS_JSON__;
+const BASEMAP = "__BASEMAP__";
+const COLORS = {태양광:"#c98a2b","육상풍력":"#4a7c59","해상풍력":"#3f6b8c","풍력_구분미상":"#8a9199","복합_검수필요":"#8a9199"};
+const SRC_ORDER = ["태양광","육상풍력","해상풍력","풍력_구분미상","복합_검수필요"];
+const WGS84="EPSG:4326";
+let olMap=null, src=null, overlay=null, proj=null;
+function esc(s){return String(s==null?"":s).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));}
+function fmtMW(v){return v==null?"—":Number(v).toLocaleString()+" MW";}
+function tag(s){const c=COLORS[s]||"#8a9199";return `<span class="tag" style="color:${c}"><span class="sw" style="background:${c}"></span>${esc(s)}</span>`;}
+
+function renderLegend(){
+  const present=SRC_ORDER.filter(s=>PLANTS.some(p=>p.src===s));
+  document.getElementById("legend").innerHTML=present.map(s=>
+    `<span class="li"><span class="sw" style="background:${COLORS[s]}"></span>${esc(s.replace("_구분미상","(미상)"))}</span>`).join("");
+}
+function iconStyle(color){return new ol.style.Style({image:new ol.style.Circle({
+  radius:6, fill:new ol.style.Fill({color}), stroke:new ol.style.Stroke({color:"#fff",width:2})})});}
+
+function drawMarkers(){
+  src.clear();
+  PLANTS.forEach(p=>{
+    if(p.lat==null||p.lon==null) return;
+    const f=new ol.Feature({geometry:new ol.geom.Point(ol.proj.transform([p.lon,p.lat],WGS84,proj))});
+    f.setStyle(iconStyle(COLORS[p.src]||"#8a9199")); f.set("pid",p.id); src.addFeature(f);
+  });
+}
+function showPopup(p){
+  const el=document.getElementById("popup");
+  const row=(k,v)=>v?`<div class="pop-row"><span class="k">${k}</span><span class="v">${v}</span></div>`:"";
+  el.innerHTML=`<div class="pop-head"><div class="pop-title">${esc(p.name)}</div>`+
+    `<button class="pop-close" onclick="hidePopup()">&times;</button></div><div class="pop-body">`+
+    `<div class="pop-row"><span class="k">발전원</span><span class="v">${tag(p.src)}</span></div>`+
+    row("지역",`${esc(p.region)} ${esc(p.sgg)}`)+row("설비용량",fmtMW(p.mw))+
+    row("사업주체",esc(p.operator||"—"))+row("최초허가",esc(p.firstPermit||"—"))+
+    row("최근 심의",p.round?`제${esc(p.round)}차`:"")+`</div>`;
+  el.hidden=false;
+  if(p.lat!=null&&overlay) overlay.setPosition(ol.proj.transform([p.lon,p.lat],WGS84,proj));
+}
+function hidePopup(){const el=document.getElementById("popup"); if(el)el.hidden=true; if(overlay)overlay.setPosition(undefined);}
+
+function buildMap(attempt){
+  attempt=attempt||0;
+  if(typeof vw==="undefined"||!vw.ol3||!vw.ol3.Map){
+    if(attempt>40){document.getElementById("map").innerHTML='<div class="nodata">VWorld 지도를 불러오지 못했습니다.<br>키·도메인 등록을 확인하세요.</div>';return;}
+    return setTimeout(()=>buildMap(attempt+1),250);
+  }
+  const bt={"photo-hybrid":vw.ol3.BasemapType.PHOTO_HYBRID,"photo":vw.ol3.BasemapType.PHOTO,
+    "graphic":vw.ol3.BasemapType.GRAPHIC,"graphic-gray":vw.ol3.BasemapType.GRAPHIC_GRAY}[BASEMAP]||vw.ol3.BasemapType.PHOTO_HYBRID;
+  vw.ol3.MapOptions={basemapType:bt,controlDensity:vw.ol3.DensityType.EMPTY,
+    interactionDensity:vw.ol3.DensityType.BASIC,controlsAutoArrange:true,
+    homePosition:vw.ol3.CameraPosition,initPosition:vw.ol3.CameraPosition};
+  olMap=new vw.ol3.Map("map",vw.ol3.MapOptions);
+  proj=olMap.getView().getProjection();
+  src=new ol.source.Vector();
+  olMap.addLayer(new ol.layer.Vector({source:src,zIndex:999}));
+  overlay=new ol.Overlay({element:document.getElementById("popup"),positioning:"bottom-center",stopEvent:true,offset:[0,-6]});
+  olMap.addOverlay(overlay);
+  const CENTER=ol.proj.transform([126.5,34.6],WGS84,proj), ZOOM=9;
+  function fitView(){ olMap.getView().setCenter(CENTER); olMap.getView().setZoom(ZOOM); olMap.updateSize(); }
+  fitView();
+  // iframe 크기 확정 전 초기화되면 줌이 어긋나므로, 렌더 후 재보정 + 리사이즈 대응
+  setTimeout(fitView,300); setTimeout(fitView,900);
+  window.addEventListener("resize",()=>{ olMap.updateSize(); });
+  olMap.on("click",evt=>{
+    let hit=null; olMap.forEachFeatureAtPixel(evt.pixel,f=>{if(f.get("pid")){hit=f;return true;}});
+    if(hit){const p=PLANTS.find(x=>x.id===hit.get("pid")); if(p)showPopup(p);} else hidePopup();
+  });
+  olMap.on("pointermove",evt=>{olMap.getTargetElement().style.cursor=olMap.hasFeatureAtPixel(evt.pixel)?"pointer":"";});
+  drawMarkers(); renderLegend();
+}
+window.addEventListener("load",()=>buildMap());
+</script>
+</body>
+</html>

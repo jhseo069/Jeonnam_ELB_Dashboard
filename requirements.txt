@@ -1,0 +1,62 @@
+# ─────────────────────────────────────────────────────────────
+# 전남·광주 발전사업 데이터 수집·가공·대시보드 프로젝트 의존성
+# Python 3.13 / 재현용 고정 버전은 requirements.lock.txt 참조
+# ─────────────────────────────────────────────────────────────
+
+# 1) 웹 수집 — 전기위원회(korec.go.kr), 전력거래소 KPX(new.kpx.or.kr)
+requests>=2.32
+httpx>=0.28
+beautifulsoup4>=4.13
+lxml>=6.0
+tenacity>=9.0
+python-dateutil>=2.9
+
+# 2) PDF 추출 — 텍스트 → 표구조 → 페이지 렌더링 → OCR 순서
+pdfplumber>=0.11
+pymupdf>=1.26
+pypdf>=6.0
+pytesseract>=0.3.13
+Pillow>=11.0
+opencv-python-headless>=4.11
+
+# 3) 첨부 부가 포맷 — HWP(OLE) 구조 확인, 구형 xls
+olefile>=0.47
+xlrd>=2.0
+
+# 3-1) HWP/HWPX 처리 - 전기위원회 첨부의 73%가 한글 문서
+#      .hwp  : 설치된 한컴오피스를 COM 자동화로 구동해 PDF 변환 (pywin32)
+#      .hwpx : OWPML(ZIP+XML) 직접 파싱
+pywin32>=311; sys_platform == "win32"
+python-hwpx>=6.3
+
+# 4) 데이터 처리 및 산출물(XLSX/CSV/Parquet)
+pandas>=2.2,<3.0
+numpy>=2.1
+openpyxl>=3.1
+XlsxWriter>=3.2
+pyarrow>=18.0
+
+# 5) Google Sheets 업로드 (서비스계정 인증)
+gspread>=6.2
+google-auth>=2.38
+google-auth-oauthlib>=1.2
+google-api-python-client>=2.160
+
+# 6) 좌표 처리 — VWorld 지오코딩 결과 변환/검증
+pyproj>=3.7
+shapely>=2.0
+
+# 7) 법인명·발전소명 표준화 및 중복 판정
+rapidfuzz>=3.12
+
+# 8) 설정·로깅·진행 표시
+python-dotenv>=1.0
+PyYAML>=6.0
+tqdm>=4.67
+rich>=13.9
+
+# 9) 테스트
+pytest>=8.3
+
+# 10) 대화형 대시보드/데이터 앱 (선택)
+streamlit>=1.63

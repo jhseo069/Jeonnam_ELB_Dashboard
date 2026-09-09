@@ -1,0 +1,4 @@
+# Streamlit Cloud 배포용 최소 의존성 (앱 구동에 필요한 것만)
+streamlit>=1.63
+pandas>=2.2
+python-dotenv>=1.0

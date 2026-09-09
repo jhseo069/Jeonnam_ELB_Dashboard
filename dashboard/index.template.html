@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>전남·광주 발전사업 현황 대시보드</title>
+<style>
+  /* 발전원 구분색: 채도 낮춘 절제 3색. 데이터 구분에만 사용 */
+  :root {
+    --solar:#c98a2b; --onshore:#4a7c59; --offshore:#3f6b8c; --misc:#8a9199;
+
+    --ink:#1a1f24; --sub:#5b636b; --muted:#889098;
+    --bg:#f2f3f5; --panel:#ffffff; --panel-2:#f7f8f9;
+    --line:#e2e5e8; --line-2:#eceef0;
+    --accent:#2f3a44; --accent-soft:#eef1f4;
+    --focus:#3f6b8c;
+    --radius:6px;
+    --font:"Pretendard","Malgun Gothic","맑은 고딕",system-ui,-apple-system,sans-serif;
+    --mono:"SFMono-Regular",Consolas,"Menlo",monospace;
+  }
+  :root[data-theme="dark"] {
+    --ink:#e6e9ec; --sub:#aab2ba; --muted:#7e878f;
+    --bg:#15181c; --panel:#1c2025; --panel-2:#22272d;
+    --line:#2c3238; --line-2:#262b31;
+    --accent:#c7d0d8; --accent-soft:#252b31; --focus:#5b90b8;
+    --solar:#d8a04a; --onshore:#6aa07d; --offshore:#5b90b8; --misc:#9aa2aa;
+  }
+  * { box-sizing:border-box; }
+  html,body { height:100%; }
+  body { margin:0; font-family:var(--font); color:var(--ink); background:var(--bg);
+         font-size:13px; line-height:1.45; -webkit-font-smoothing:antialiased; }
+
+  /* ── 헤더 ── */
+  header { background:var(--panel); border-bottom:1px solid var(--line);
+           padding:14px 22px; display:flex; align-items:baseline; gap:16px; flex-wrap:wrap; }
+  header h1 { margin:0; font-size:16px; font-weight:700; letter-spacing:-.2px; color:var(--ink); }
+  header .sub { font-size:12px; color:var(--muted); }
+  header .sub b { color:var(--sub); font-weight:600; }
+
+  /* ── 레이아웃 ── */
+  .layout { display:grid; grid-template-columns:236px 1fr 320px;
+            height:calc(100vh - 53px); }
+  .sidebar,.detail { background:var(--panel); overflow-y:auto; }
+  .sidebar { border-right:1px solid var(--line); padding:18px 16px; }
+  .detail { border-left:1px solid var(--line); padding:18px 16px; }
+  .center { position:relative; background:var(--panel-2); }
+  #map { width:100%; height:100%; }
+
+  /* 스크롤바 절제 */
+  .sidebar::-webkit-scrollbar,.detail::-webkit-scrollbar,#tableWrap::-webkit-scrollbar{width:8px;height:8px;}
+  .sidebar::-webkit-scrollbar-thumb,.detail::-webkit-scrollbar-thumb,#tableWrap::-webkit-scrollbar-thumb{background:var(--line);border-radius:4px;}
+
+  /* ── 섹션 제목 ── */
+  h2 { font-size:11px; margin:20px 0 8px; color:var(--muted); font-weight:600;
+       letter-spacing:.4px; }
+  h2:first-child { margin-top:0; }
+
+  /* ── KPI ── */
+  .kpi-grid { display:grid; grid-template-columns:1fr 1fr; gap:1px;
+              background:var(--line-2); border:1px solid var(--line-2); border-radius:var(--radius);
+              overflow:hidden; }
+  .kpi { background:var(--panel); padding:11px 12px; }
+  .kpi .v { font-size:19px; font-weight:700; letter-spacing:-.5px; font-variant-numeric:tabular-nums;
+            font-family:var(--mono); }
+  .kpi .v small { font-size:11px; font-weight:500; color:var(--muted); margin-left:2px; font-family:var(--font); }
+  .kpi .l { font-size:11px; color:var(--muted); margin-top:2px; }
+  .kpi.total .v { color:var(--ink); }
+
+  /* ── 필터 컨트롤 ── */
+  .filter-group label { display:flex; align-items:center; gap:7px; font-size:13px;
+    padding:4px 0; cursor:pointer; color:var(--sub); }
+  .filter-group input[type=checkbox]{ accent-color:var(--accent); width:14px; height:14px; }
+  .filter-group .cnt { margin-left:auto; font-size:11px; color:var(--muted);
+    font-variant-numeric:tabular-nums; font-family:var(--mono); }
+  select, input[type=text] { width:100%; padding:7px 9px; border:1px solid var(--line);
+    border-radius:var(--radius); font-size:13px; margin-bottom:7px; background:var(--panel);
+    color:var(--ink); font-family:inherit; -webkit-appearance:none; appearance:none;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23889098' stroke-width='1.4' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat:no-repeat; background-position:right 10px center; }
+  input[type=text]{ background-image:none; }
+  select:focus, input[type=text]:focus { outline:none; border-color:var(--focus);
+    box-shadow:0 0 0 3px rgba(63,107,140,.12); }
+
+  /* ── 색 스와치(라인 배지) ── */
+  .swatch { width:10px; height:10px; border-radius:2px; display:inline-block; flex:none; }
+
+  /* ── 상세 패널 ── */
+  .detail .field { margin:0; padding:8px 0; border-bottom:1px solid var(--line-2); font-size:13px; }
+  .detail .field:last-child { border-bottom:none; }
+  .detail .field .k { color:var(--muted); font-size:11px; margin-bottom:2px; }
+  .detail .field .val { color:var(--ink); }
+  .detail table { width:100%; border-collapse:collapse; font-size:11.5px; margin-top:6px; }
+  .detail th, .detail td { border-bottom:1px solid var(--line-2); padding:5px 6px; text-align:left; }
+  .detail th { color:var(--muted); font-weight:600; background:var(--panel-2); }
+  .detail-name { font-size:15px; font-weight:700; letter-spacing:-.3px; margin:2px 0 4px; }
+
+  /* ── 배지(발전원 태그): 라인 스타일, 채움 없음 ── */
+  .tag { display:inline-flex; align-items:center; gap:5px; padding:2px 8px; border-radius:20px;
+    font-size:11px; font-weight:600; border:1px solid currentColor; background:transparent; }
+  .tag .swatch { width:7px; height:7px; border-radius:50%; }
+
+  .hint { font-size:11.5px; color:var(--muted); line-height:1.5; }
+  .empty { color:var(--muted); font-size:12.5px; padding:20px 4px; text-align:center; }
+  .warn { background:#fdf6e3; border:1px solid #ecdca6;
+    color:#7a6320; padding:8px 10px; border-radius:var(--radius); font-size:12px; margin:8px 0; }
+
+  /* ── 표 오버레이 ── */
+  #tableWrap { max-height:45%; overflow:auto; position:absolute; bottom:0; left:0; right:0;
+    background:var(--panel); border-top:1px solid var(--line);
+    box-shadow:0 -4px 16px rgba(20,25,30,.06); display:none; }
+  #tableWrap table { width:100%; border-collapse:collapse; font-size:12px; }
+  #tableWrap th, #tableWrap td { border-bottom:1px solid var(--line-2); padding:7px 10px;
+    text-align:left; white-space:nowrap; }
+  #tableWrap td.num { text-align:right; font-variant-numeric:tabular-nums; font-family:var(--mono); }
+  #tableWrap th { position:sticky; top:0; background:var(--panel-2); color:var(--sub);
+    font-weight:600; font-size:11px; z-index:1; border-bottom:1px solid var(--line); }
+  #tableWrap tbody tr { cursor:pointer; }
+  #tableWrap tbody tr:hover { background:var(--accent-soft); }
+
+  /* ── 버튼 ── */
+  button { padding:7px 12px; border:1px solid var(--line); background:var(--panel);
+    border-radius:var(--radius); cursor:pointer; font-size:12.5px; color:var(--sub);
+    font-family:inherit; transition:background .12s,border-color .12s; width:100%; }
+  button:hover { background:var(--accent-soft); border-color:var(--line); color:var(--ink); }
+
+  /* 지도 위 플로팅 범례 */
+  .map-legend { position:absolute; right:14px; top:14px; background:rgba(255,255,255,.95);
+    border:1px solid var(--line); border-radius:var(--radius); padding:8px 12px;
+    display:flex; flex-direction:column; gap:6px; font-size:11.5px; color:var(--sub);
+    backdrop-filter:blur(3px); box-shadow:0 1px 8px rgba(20,25,30,.08); }
+  .map-legend .legend-item { display:inline-flex; align-items:center; gap:7px; }
+
+  /* 로딩/카운트 배지 */
+  .count-pill { display:inline-block; background:var(--accent-soft); color:var(--sub);
+    border-radius:20px; padding:1px 9px; font-size:11px; font-weight:600; margin-left:6px;
+    font-variant-numeric:tabular-nums; }
+
+  /* ── 지도 팝업 (마커 클릭 시) ── */
+  .map-popup { min-width:230px; max-width:270px; background:var(--panel);
+    border:1px solid var(--line); border-radius:8px; box-shadow:0 6px 24px rgba(20,25,30,.16);
+    font-size:12.5px; color:var(--ink); pointer-events:auto; }
+  /* 아래쪽 말풍선 꼬리 */
+  .map-popup::after { content:""; position:absolute; left:50%; bottom:-7px; width:12px; height:12px;
+    background:var(--panel); border-right:1px solid var(--line); border-bottom:1px solid var(--line);
+    transform:translateX(-50%) rotate(45deg); }
+  .map-popup .pop-head { display:flex; align-items:flex-start; gap:8px; padding:11px 12px 8px;
+    border-bottom:1px solid var(--line-2); }
+  .map-popup .pop-title { font-weight:700; font-size:13px; line-height:1.35; letter-spacing:-.2px; flex:1; }
+  .map-popup .pop-close { border:none; background:none; color:var(--muted); font-size:16px;
+    line-height:1; cursor:pointer; padding:0 2px; width:auto; }
+  .map-popup .pop-close:hover { color:var(--ink); background:none; }
+  .map-popup .pop-body { padding:8px 12px 10px; }
+  .map-popup .pop-row { display:flex; justify-content:space-between; gap:10px; padding:2px 0; }
+  .map-popup .pop-row .k { color:var(--muted); font-size:11.5px; flex:none; }
+  .map-popup .pop-row .v { text-align:right; font-variant-numeric:tabular-nums; }
+  .map-popup .pop-foot { padding:8px 12px; border-top:1px solid var(--line-2); }
+  .map-popup .pop-foot button { width:100%; padding:6px 10px; font-size:12px; font-weight:600;
+    color:#fff; background:var(--accent); border-color:var(--accent); }
+  :root:not([data-theme="dark"]) .map-popup .pop-foot button { background:#2f3a44; }
+  .map-popup .pop-foot button:hover { opacity:.9; background:var(--accent); color:#fff; }
+</style>
+</head>
+<body>
+<header>
+  <h1>전남·광주 발전사업 현황</h1>
+  <div class="sub">태양광 · 육상풍력 · 해상풍력</div>
+  <div class="sub" style="margin-left:auto">데이터 기준일 <b id="asof"></b> &nbsp;·&nbsp; 출처 전기위원회 · 3MW초과 허가대장 · KPX</div>
+  <button id="themeToggle" style="width:auto; padding:5px 10px" title="화면 밝기 전환">◐ 화면</button>
+</header>
+<div class="layout">
+  <aside class="sidebar">
+    <h2>발전원</h2>
+    <div class="filter-group" id="srcFilter"></div>
+    <h2>지역</h2>
+    <select id="regionSel"><option value="">전체</option></select>
+    <select id="sggSel"><option value="">시군구 전체</option></select>
+    <h2>사업주체</h2>
+    <input type="text" id="operatorSearch" placeholder="사업주체 검색" />
+    <h2>허가상태</h2>
+    <select id="statusSel"><option value="">전체</option></select>
+    <h2>계통계약</h2>
+    <select id="gridSel">
+      <option value="">전체</option>
+      <option value="체결">체결</option>
+      <option value="협의 중">협의 중</option>
+      <option value="미체결">미체결</option>
+      <option value="none">계약정보 없음</option>
+    </select>
+    <h2>배경지도</h2>
+    <select id="basemapSel">
+      <option value="photo-hybrid" selected>위성지도 (지명 표시)</option>
+      <option value="photo">위성지도 (사진만)</option>
+      <option value="graphic">일반지도</option>
+      <option value="graphic-gray">일반지도 (회색)</option>
+    </select>
+    <h2>보기</h2>
+    <button id="toggleTable">목록으로 보기</button>
+    <div style="margin-top:10px" class="hint">지도의 점 또는 목록에서 발전소를 선택하면 오른쪽에 상세가 표시됩니다.</div>
+  </aside>
+  <div class="center">
+    <div id="map"></div>
+    <div class="map-legend" id="mapLegend"></div>
+    <div class="map-popup" id="mapPopup" hidden></div>
+    <div id="tableWrap"><table id="dataTable"></table></div>
+  </div>
+  <aside class="detail" id="detailPanel">
+    <h2>요약</h2>
+    <div class="kpi-grid" id="kpiGrid"></div>
+    <h2 style="margin-top:18px">발전소 상세</h2>
+    <div id="detailBody"><div class="empty">지도 또는 표에서 발전소를 선택하면<br>상세 정보가 표시됩니다.</div></div>
+  </aside>
+</div>
+
+<script src="https://map.vworld.kr/js/vworldMapInit.js.do?version=2.0&apiKey=__VWORLD_KEY__&domain=__VWORLD_DOMAIN__"></script>
+<script src="./data.json.js"></script>
+<script>
+// 절제 3색 팔레트 (채도 낮춤). 데이터 구분에만 사용
+const COLORS = {태양광:"#c98a2b", 육상풍력:"#4a7c59", 해상풍력:"#3f6b8c",
+                "풍력_구분미상":"#8a9199", "복합_검수필요":"#8a9199"};
+const SRC_ORDER = ["태양광","육상풍력","해상풍력","풍력_구분미상","복합_검수필요"];
+const state = { src:new Set(Object.keys(COLORS)), region:"", sgg:"", operator:"",
+                status:"", grid:"", selected:null };
+let vmap=null, olMap=null, markerSource=null, markerLayer=null, popupOverlay=null;
+const WGS84="EPSG:4326";
+
+function fmtMW(v){ return v==null?"—":Number(v).toLocaleString()+"<small>MW</small>"; }
+function fmt억(v){ return v==null?"—":Number(v).toLocaleString()+"<small>억원</small>"; }
+function esc(s){ return String(s==null?"":s).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c])); }
+
+function filtered(){
+  return DATA.plants.filter(p=>{
+    if(!state.src.has(p.src)) return false;
+    if(state.region && p.region!==state.region) return false;
+    if(state.sgg && p.sgg!==state.sgg) return false;
+    if(state.operator && !(p.operator||"").includes(state.operator)) return false;
+    if(state.status && p.agendaType!==state.status) return false;
+    if(state.grid){
+      const cs = p.contracts.map(c=>c.status);
+      if(state.grid==="none" && cs.length) return false;
+      if(state.grid!=="none" && !cs.includes(state.grid)) return false;
+    }
+    return true;
+  });
+}
+
+function srcTag(src){
+  const c=COLORS[src]||"#8a9199";
+  return `<span class="tag" style="color:${c}"><span class="swatch" style="background:${c}"></span>${esc(src)}</span>`;
+}
+
+function renderKPI(rows){
+  const cnt={}, cap={};
+  let mw=0, gridConstraint=0;
+  rows.forEach(p=>{
+    cnt[p.src]=(cnt[p.src]||0)+1;
+    cap[p.src]=(cap[p.src]||0)+(p.mw||0);
+    if(p.mw) mw+=p.mw;
+    if(p.gridCond) gridConstraint++;
+  });
+  const wind=(cnt["육상풍력"]||0)+(cnt["해상풍력"]||0)+(cnt["풍력_구분미상"]||0);
+  const g=document.getElementById("kpiGrid");
+  g.innerHTML=`
+    <div class="kpi total"><div class="v">${rows.length.toLocaleString()}</div><div class="l">전체 사업</div></div>
+    <div class="kpi total"><div class="v">${Math.round(mw).toLocaleString()}<small>MW</small></div><div class="l">설비용량 합계</div></div>
+    <div class="kpi"><div class="v">${(cnt["태양광"]||0)}</div><div class="l">태양광 ${Math.round(cap["태양광"]||0).toLocaleString()}MW</div></div>
+    <div class="kpi"><div class="v">${(cnt["해상풍력"]||0)}</div><div class="l">해상풍력 ${Math.round(cap["해상풍력"]||0).toLocaleString()}MW</div></div>
+    <div class="kpi"><div class="v">${(cnt["육상풍력"]||0)}</div><div class="l">육상풍력 ${Math.round(cap["육상풍력"]||0).toLocaleString()}MW</div></div>
+    <div class="kpi"><div class="v">${gridConstraint}</div><div class="l">계통제약 조건</div></div>`;
+}
+
+function renderLegend(){
+  const present=SRC_ORDER.filter(s=>DATA.plants.some(p=>p.src===s));
+  document.getElementById("mapLegend").innerHTML = present.map(s=>
+    `<span class="legend-item"><span class="swatch" style="background:${COLORS[s]};border-radius:50%"></span>${esc(s.replace("_구분미상","(미상)"))}</span>`
+  ).join("");
+}
+
+function iconStyle(color, selected){
+  return new ol.style.Style({image:new ol.style.Circle({
+    radius:selected?7:5,
+    fill:new ol.style.Fill({color:color}),
+    stroke:new ol.style.Stroke({color:selected?"#1a1f24":"#ffffff", width:selected?2.5:1.5})})});
+}
+
+function renderMap(rows){
+  if(!markerSource) return;
+  markerSource.clear();
+  rows.forEach(p=>{
+    if(p.lat==null||p.lon==null) return;
+    const feature=new ol.Feature({
+      geometry:new ol.geom.Point(ol.proj.transform([p.lon,p.lat], WGS84, window.__proj||"EPSG:3857"))});
+    feature.setStyle(iconStyle(COLORS[p.src]||"#8a9199", p.id===state.selected));
+    feature.set("pid", p.id);
+    markerSource.addFeature(feature);
+  });
+}
+
+function renderTable(rows){
+  const t=document.getElementById("dataTable");
+  const head="<thead><tr><th>발전소명</th><th>발전원</th><th>시군구</th><th>사업주체</th>"+
+    "<th style='text-align:right'>용량(MW)</th><th>최초허가</th><th>데이터상태</th></tr></thead>";
+  const body=rows.map(p=>`<tr onclick="showDetail('${p.id}')">
+      <td>${esc(p.name)}</td><td>${srcTag(p.src)}</td>
+      <td>${esc(p.sgg)}</td><td>${esc(p.operator||"—")}</td>
+      <td class="num">${p.mw!=null?Number(p.mw).toLocaleString():"—"}</td>
+      <td>${esc(p.firstPermit||"—")}</td><td>${esc(p.status)}</td></tr>`).join("");
+  t.innerHTML=head+"<tbody>"+body+"</tbody>";
+}
+
+function showDetail(id){
+  const p=DATA.plants.find(x=>x.id===id);
+  if(!p) return;
+  state.selected=id;
+  renderMap(filtered());   // 선택 마커 강조 갱신
+  // 표에서 선택했을 때도 지도 팝업을 띄우고 해당 위치로 이동
+  if(p.lat!=null && p.lon!=null && olMap){
+    showPopup(p);
+    olMap.getView().setCenter(ol.proj.transform([p.lon,p.lat], WGS84, window.__proj||"EPSG:3857"));
+  }
+  let html=`<div class="detail-name">${esc(p.name)}</div><div style="margin-bottom:10px">${srcTag(p.src)}</div>`;
+  const f=(k,v)=>`<div class="field"><div class="k">${k}</div><div class="val">${v||"—"}</div></div>`;
+  html+=f("지역 · 시군구", `${esc(p.region)} ${esc(p.sgg)}`);
+  html+=f("사업주체", esc(p.operator));
+  html+=f("최대주주", esc(p.owner));
+  html+=f("허가위치", esc(p.loc));
+  html+=f("설비용량", fmtMW(p.mw));
+  html+=f("총사업비", fmt억(p.cost));
+  html+=f("최초 발전사업허가일", esc(p.firstPermit));
+  html+=f("최근 심의", p.round?`제${esc(p.round)}차 · ${esc(p.agendaType)}`:"");
+  if(p.gridCond) html+=`<div class="warn">계통제약 조건 · ${esc(p.gridCond)}</div>`;
+  html+=f("좌표", p.lat?`${p.lat}, ${p.lon} <span class="count-pill">${esc(p.coordAcc)}</span>`:"좌표없음");
+  html+=f("데이터 상태", `<span class="count-pill">${esc(p.status)}</span>`);
+  html+=f("출처", `${esc(p.src_doc)} ${p.src_pg&&p.src_pg!=="nan"?('p'+esc(p.src_pg)):''}`);
+
+  if(p.history && p.history.length){
+    html+=`<h2 style="margin-top:16px">허가이력 <span class="count-pill">${p.history.length}</span></h2>`;
+    html+=`<table><thead><tr><th>회차</th><th>유형</th><th>비고</th></tr></thead><tbody>`;
+    p.history.forEach(h=>{
+      const note=h.transferor?`${esc(h.transferor)} → ${esc(h.transferee)}`:esc(h.owner||"");
+      html+=`<tr><td>${esc(h.round||"")}</td><td>${esc(h.type||"")}</td><td>${note}</td></tr>`;
+    });
+    html+="</tbody></table>";
+  }
+  if(p.contracts && p.contracts.length){
+    html+=`<h2 style="margin-top:16px">계통계약</h2>`;
+    html+=`<table><thead><tr><th>상태</th><th>최초체결</th><th>연계전압</th></tr></thead><tbody>`;
+    p.contracts.forEach(c=>{
+      html+=`<tr><td>${esc(c.status)}${c.planned?' (예정)':''}</td><td>${esc(c.firstDate||"—")}</td><td>${esc(c.voltage||"—")}</td></tr>`;
+    });
+    html+="</tbody></table>";
+  }
+  document.getElementById("detailBody").innerHTML=html;
+}
+
+function refresh(){
+  const rows=filtered();
+  renderKPI(rows); renderMap(rows); renderTable(rows);
+}
+
+function initControls(){
+  document.getElementById("asof").textContent=DATA.meta.기준일;
+  renderLegend();
+  // 발전원 체크박스
+  const sf=document.getElementById("srcFilter");
+  SRC_ORDER.forEach(s=>{
+    const cnt=DATA.plants.filter(p=>p.src===s).length;
+    if(!cnt) return;
+    sf.innerHTML+=`<label><input type="checkbox" checked data-src="${s}">`+
+      `<span class="swatch" style="background:${COLORS[s]};border-radius:50%"></span>`+
+      `<span>${esc(s.replace("_구분미상","(미상)"))}</span><span class="cnt">${cnt}</span></label>`;
+  });
+  sf.addEventListener("change",e=>{
+    const s=e.target.dataset.src;
+    if(e.target.checked) state.src.add(s); else state.src.delete(s);
+    refresh();
+  });
+  // 지역/시군구
+  const regions=[...new Set(DATA.plants.map(p=>p.region))].filter(Boolean).sort();
+  regions.forEach(r=>document.getElementById("regionSel").innerHTML+=`<option>${r}</option>`);
+  const sggAll=[...new Set(DATA.plants.map(p=>p.sgg))].filter(Boolean).sort();
+  function fillSgg(){
+    const sel=document.getElementById("sggSel");
+    const list=state.region?[...new Set(DATA.plants.filter(p=>p.region===state.region).map(p=>p.sgg))].filter(Boolean).sort():sggAll;
+    sel.innerHTML='<option value="">시군구 전체</option>'+list.map(s=>`<option>${s}</option>`).join("");
+  }
+  fillSgg();
+  document.getElementById("regionSel").addEventListener("change",e=>{state.region=e.target.value;state.sgg="";fillSgg();refresh();});
+  document.getElementById("sggSel").addEventListener("change",e=>{state.sgg=e.target.value;refresh();});
+  document.getElementById("operatorSearch").addEventListener("input",e=>{state.operator=e.target.value.trim();refresh();});
+  // 허가상태
+  const types=[...new Set(DATA.plants.map(p=>p.agendaType))].filter(Boolean).sort();
+  types.forEach(t=>document.getElementById("statusSel").innerHTML+=`<option>${t}</option>`);
+  document.getElementById("statusSel").addEventListener("change",e=>{state.status=e.target.value;refresh();});
+  document.getElementById("gridSel").addEventListener("change",e=>{state.grid=e.target.value;refresh();});
+  document.getElementById("toggleTable").addEventListener("click",()=>{
+    const w=document.getElementById("tableWrap");
+    const open=!(w.style.display==="block");
+    w.style.display=open?"block":"none";
+    document.getElementById("toggleTable").textContent=open?"표 닫기":"목록으로 보기";
+  });
+  // 다크/라이트 토글 (선택은 localStorage 에 기억)
+  const root=document.documentElement;
+  try{ if(localStorage.getItem("dash-theme")==="dark") root.setAttribute("data-theme","dark"); }catch(e){}
+  document.getElementById("themeToggle").addEventListener("click",()=>{
+    const dark=root.getAttribute("data-theme")!=="dark";
+    root.setAttribute("data-theme", dark?"dark":"light");
+    try{ localStorage.setItem("dash-theme", dark?"dark":"light"); }catch(e){}
+  });
+  document.getElementById("basemapSel").addEventListener("change",e=>{
+    if(!olMap) return;
+    // 배경지도 전환 시 뷰(중심·줌)가 리셋되므로 저장 후 복원한다
+    const view=olMap.getView();
+    const center=view.getCenter(), zoom=view.getZoom();
+    olMap.setBasemapType(e.target.value);
+    setTimeout(()=>{ view.setCenter(center); view.setZoom(zoom); }, 100);
+  });
+}
+
+function buildMap(){
+  // vw.ol3.Map 은 OpenLayers 지도를 직접 상속한다(getView/addLayer 보유).
+  vw.ol3.MapOptions={basemapType:vw.ol3.BasemapType.PHOTO_HYBRID,
+    controlDensity:vw.ol3.DensityType.EMPTY, interactionDensity:vw.ol3.DensityType.BASIC,
+    controlsAutoArrange:true, homePosition:vw.ol3.CameraPosition,
+    initPosition:vw.ol3.CameraPosition};
+  olMap=new vw.ol3.Map("map",vw.ol3.MapOptions);
+
+  const proj = olMap.getView().getProjection();   // EPSG:900913 (=3857)
+  markerSource=new ol.source.Vector();
+  markerLayer=new ol.layer.Vector({source:markerSource, zIndex:999});
+  olMap.addLayer(markerLayer);
+  window.__proj = proj;
+
+  olMap.getView().setCenter(ol.proj.transform([126.6,34.6], WGS84, proj));
+  olMap.getView().setZoom(9);
+
+  // 마커 클릭 시 지도에 앵커되는 팝업 오버레이
+  popupOverlay = new ol.Overlay({
+    element: document.getElementById("mapPopup"),
+    positioning: "bottom-center", stopEvent: true, offset: [0, -6],
+  });
+  olMap.addOverlay(popupOverlay);
+
+  olMap.on("click",(evt)=>{
+    let hit=null;
+    olMap.forEachFeatureAtPixel(evt.pixel, f=>{ if(f.get("pid")){ hit=f; return true; } });
+    if(hit){
+      const p=DATA.plants.find(x=>x.id===hit.get("pid"));
+      if(p){ showPopup(p); state.selected=p.id; renderMap(filtered()); }
+    } else {
+      hidePopup();
+    }
+  });
+  // 커서: 마커 위에서 포인터
+  olMap.on("pointermove",(evt)=>{
+    const hit=olMap.hasFeatureAtPixel(evt.pixel);
+    olMap.getTargetElement().style.cursor = hit?"pointer":"";
+  });
+}
+
+function showPopup(p){
+  const el=document.getElementById("mapPopup");
+  const row=(k,v)=>v?`<div class="pop-row"><span class="k">${k}</span><span class="v">${v}</span></div>`:"";
+  el.innerHTML=
+    `<div class="pop-head"><div class="pop-title">${esc(p.name)}</div>`+
+    `<button class="pop-close" onclick="hidePopup()" title="닫기">&times;</button></div>`+
+    `<div class="pop-body">`+
+      `<div class="pop-row"><span class="k">발전원</span><span class="v">${srcTag(p.src)}</span></div>`+
+      row("지역", `${esc(p.region)} ${esc(p.sgg)}`)+
+      row("설비용량", fmtMW(p.mw))+
+      row("사업주체", esc(p.operator||"—"))+
+      row("최초허가", esc(p.firstPermit||"—"))+
+      row("최근 심의", p.round?`제${esc(p.round)}차`:"")+
+    `</div>`+
+    `<div class="pop-foot"><button onclick="showDetail('${p.id}')">상세 보기 →</button></div>`;
+  el.hidden=false;
+  if(p.lat!=null && p.lon!=null && popupOverlay){
+    popupOverlay.setPosition(ol.proj.transform([p.lon,p.lat], WGS84, window.__proj||"EPSG:3857"));
+  }
+}
+
+function hidePopup(){
+  const el=document.getElementById("mapPopup");
+  if(el) el.hidden=true;
+  if(popupOverlay) popupOverlay.setPosition(undefined);
+}
+
+function mapFallback(msg){
+  document.getElementById("map").innerHTML=
+    '<div style="padding:40px;text-align:center;color:#7f8c8d">VWorld 지도를 불러오지 못했습니다.<br>'+
+    (msg||"")+'<br>표 보기로 데이터는 확인할 수 있습니다.</div>';
+  document.getElementById("tableWrap").style.display="block";
+  refresh();
+}
+
+// vw 객체가 document.write 로 늦게 로드되므로 준비될 때까지 폴링한다.
+function initMap(attempt){
+  attempt=attempt||0;
+  if(typeof vw!=="undefined" && vw.ol3 && vw.ol3.Map){
+    try{ buildMap(); refresh(); }
+    catch(e){ mapFallback("초기화 오류: "+e.message); }
+    return;
+  }
+  if(attempt>40){ mapFallback("스크립트 로드 시간 초과 (키/도메인 등록 확인)"); return; }
+  setTimeout(()=>initMap(attempt+1), 250);   // 최대 10초 대기
+}
+
+window.addEventListener("load",()=>{
+  initControls();
+  refresh();          // 표·KPI 는 지도와 무관하게 먼저 그린다
+  initMap();
+});
+</script>
+</body>
+</html>

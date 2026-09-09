@@ -1,0 +1,49 @@
+# ── 파이썬/환경 ──
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# ── 비밀정보 (절대 커밋 금지) ──
+.env
+.env.bak
+.env.*.bak
+secrets/
+*.json.key
+.streamlit/secrets.toml
+
+# ── VWorld 키가 주입된 빌드 산출물 (커밋 금지) ──
+dashboard/index.html
+dashboard/data.json.js
+
+# ── 원본·중간 데이터 (공개 제외) ──
+data/raw/
+data/extracted/
+data/interim/
+logs/
+
+# 사용자 제공 원문(허가증 등) 제외
+data/raw/user_provided/
+
+# data/processed 는 원칙적으로 제외하되, 대시보드용 data.json 만 예외로 포함
+data/processed/
+reports/
+
+# 대시보드 데이터: data.json 만 공개 포함 (아래 예외 규칙)
+!dashboard/
+dashboard/*
+!dashboard/index.template.html
+!dashboard/data.json
+!dashboard/app_embed.html
+!dashboard/map_embed.template.html
+
+# ── 모든 .env 계열 + 키 파일 확실히 차단 ──
+*.env
+*.env.*
+!.env.example
+API 발급키.env
+*key*.env
+*.key
+*.pem
+*credentials*.json
+*service*account*.json

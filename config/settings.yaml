@@ -1,0 +1,43 @@
+# 수집 범위 및 운영 정책 (2026-09-02 사용자 확정)
+project:
+  name: 전남·광주 발전사업 데이터
+  data_basis_date: "2026-09-02"        # 수집 기준일
+
+scope:
+  # 1순위: 최근 5년. 완료 후 과거로 확대하며, 미수집 기간은 reports/ 에 별도 보고
+  collect_from: "2021-01-01"
+  collect_to: null                      # null = 게시판 최신까지
+  expand_to_full_history: false         # 최근 5년 완료 후 true 로 전환
+
+  regions:                              # 2026-07-01 전남·광주 통합 반영
+    match_any:
+      - 전라남도
+      - 전남
+      - 광주광역시
+      - 광주
+      - 전남광주통합특별시
+    # 전남/광주 구분은 광역명이 아니라 시군구로 판정한다
+    gwangju_sigungu: [동구, 서구, 남구, 북구, 광산구]
+    jeonnam_si: [목포시, 여수시, 순천시, 나주시, 광양시]
+    jeonnam_gun: [담양군, 곡성군, 구례군, 고흥군, 보성군, 화순군, 장흥군, 강진군,
+                  해남군, 영암군, 무안군, 함평군, 영광군, 장성군, 완도군, 진도군, 신안군]
+
+  energy_sources: [태양광, 육상풍력, 해상풍력]
+  excluded_sources: [연료전지, BESS, 바이오, 수력, 화력, 원자력]
+
+policy:
+  include_cancelled_projects: true      # 허가취소·사업중단 사업 포함, 사업상태로 구분
+  incremental: true                     # 재실행 시 해시 비교로 완료 파일 재처리 안 함
+  keep_versions: true                   # 수정 게시분은 삭제하지 않고 archive/ 에 버전 보관
+
+sources:
+  korec:
+    base_url: "https://www.korec.go.kr/"
+    boards:
+      - {key: meeting_result, label: "위원회 개최결과"}
+      - {key: notice,         label: "공지사항(회의록)"}
+      - {key: permit_ledger,  label: "3MW 초과 발전사업 허가대장"}
+  kpx:
+    base_url: "https://new.kpx.or.kr/"
+    board_ref: "mid=a10403040000&bid=0040"
+    label: "발전소 건설사업 추진현황(반기)"
