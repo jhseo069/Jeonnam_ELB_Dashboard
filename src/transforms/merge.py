@@ -45,6 +45,22 @@ def matching_key(name: str) -> str:
     return NOISE_RE.sub("", name or "").lower()
 
 
+SEQUENCE_UNIT_RE = re.compile(r"(\d+)(호기|호|단계|단지|차|블록|블럭|지구|구역|공구)")
+
+
+def sequence_signature(key: str) -> tuple[str, ...]:
+    """비교키에서 호기·단계 같은 '순번 단위' 숫자만 뽑는다.
+
+    '밝은해남태양광1호' -> ('1호',), '밝은해남태양광2호' -> ('2호',).
+    fuzz.ratio 는 한 글자 차이(1↔2)를 89점쯤으로 봐 서로 다른 호기·단계를
+    같은 사업으로 합쳐버린다. 순번이 다르면 유사도가 높아도 별개로 둔다.
+
+    지번·용량 등 단위 없는 맨숫자는 대상이 아니다(그것까지 막으면 표기가
+    흔들리는 같은 사업이 갈라진다). '1호'와 '2호'처럼 단위가 붙은 순번만 본다.
+    """
+    return tuple(sorted(f"{n}{u}" for n, u in SEQUENCE_UNIT_RE.findall(key or "")))
+
+
 def make_project_id(canonical_name: str, sigungu: str) -> str:
     """자료가 갱신되어도 변하지 않는 내부 식별자(지침 §13).
 
@@ -149,6 +165,9 @@ def build_projects(agenda_records: list[dict]) -> dict[str, Project]:
             if existing_key == key:
                 project_id = existing_id
                 break
+            # 숫자열(1호/2호, 제1/제2단계 등)이 다르면 서로 다른 사업 — 유사도 무시
+            if sequence_signature(existing_key) != sequence_signature(key):
+                continue
             score = fuzz.ratio(existing_key, key)
             if score >= FUZZY_THRESHOLD:
                 project_id = existing_id
@@ -183,9 +202,15 @@ def build_projects(agenda_records: list[dict]) -> dict[str, Project]:
                     setattr(project, dst_field, value)
             for src_field, dst_field in (("설비용량_MW", "설비용량_MW"),
                                          ("총사업비_억원", "총사업비_억원")):
-                value = record.get(src_field)
-                if value not in (None, "", "nan"):
-                    setattr(project, dst_field, float(value))
+                try:
+                    number = float(record.get(src_field))
+                except (TypeError, ValueError):
+                    number = None
+                # float('nan') != float('nan'). 숫자열 컬럼의 빈 값은 None 이 아니라
+                # NaN 으로 들어와, 최신 회차(예: 주식취득인가)에 용량이 비면 기존
+                # 확정값을 덮어써 버린다. 결측(NaN 포함)은 기존 값을 보존한다.
+                if number is not None and number == number:
+                    setattr(project, dst_field, number)
             project.대표출처 = record.get("출처문서명", "")
             project.출처페이지 = str(record.get("출처페이지", ""))
 

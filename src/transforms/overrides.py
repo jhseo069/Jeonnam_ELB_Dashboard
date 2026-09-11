@@ -126,6 +126,19 @@ def apply_overrides(master: pd.DataFrame) -> tuple[pd.DataFrame, list[dict]]:
     drop_idx += merge_same(lambda s: "완도금일해상풍력2단계" in _nc(s) or
                            ("금일" in _nc(s) and "2단계" in _nc(s)), 400.0,
                            "완도 금일해상풍력 2단계", "위치표기차 동일사업 병합")
+    # 여수 삼산 5단지: 안건명이 '여수삼산해상풍력(주)의 …'/'여수 삼산 …' 두 표기로
+    # 갈려 미병합(둘 다 360MW·여수·동일 사업명 핵심). 사업자명 접두만 차이.
+    drop_idx += merge_same(lambda s: "여수삼산해상풍력5단지" in _nc(s), 360.0,
+                           "여수 삼산 해상풍력 5단지", "사업자명 접두 표기차 동일사업 병합")
+    # 여수 초도: '초도해상풍력(주)의 …'/'여수 초도 …' 두 표기(둘 다 240MW). 2차(168MW)는 별개.
+    drop_idx += merge_same(lambda s: "여수초도해상풍력" in _nc(s), 240.0,
+                           "여수 초도 해상풍력", "사업자명 접두 표기차 동일사업 병합")
+    # SK E&S 전남 해상풍력 2·3단계: '에스케이이엔에스(주)의 …'/'전남 해상풍력 …' 두
+    # 표기로 갈림(단계별 각 399MW·신안). 사업자명 접두만 차이 — 단계별 동일사업 병합.
+    drop_idx += merge_same(lambda s: "전남해상풍력2단계" in _nc(s), 399.0,
+                           "전남 해상풍력 2단계", "사업자명 접두 표기차 동일사업 병합")
+    drop_idx += merge_same(lambda s: "전남해상풍력3단계" in _nc(s), 399.0,
+                           "전남 해상풍력 3단계", "사업자명 접두 표기차 동일사업 병합")
     if drop_idx:
         m = m.drop(index=drop_idx)
 
