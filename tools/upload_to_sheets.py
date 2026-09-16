@@ -13,6 +13,7 @@ r"""원천 데이터를 Google Sheets 에 업로드 (지침 §8).
 from __future__ import annotations
 
 import sys
+import time
 from datetime import date
 from pathlib import Path
 
@@ -43,6 +44,25 @@ def open_spreadsheet():
     return client.open_by_key(os.getenv("GOOGLE_SHEETS_SPREADSHEET_ID").strip())
 
 
+def _retry(desc: str, fn, *args, **kwargs):
+    """Sheets 쓰기 쿼터(429 per-minute) 초과 시 대기 후 재시도한다.
+
+    백업 정리·업로드는 짧은 시간에 쓰기 호출이 몰려 분당 한도를 넘기기 쉽다.
+    한도는 분 단위로 리셋되므로, 429면 점증 대기 후 다시 시도한다.
+    """
+    for attempt in range(1, 7):
+        try:
+            return fn(*args, **kwargs)
+        except gspread.exceptions.APIError as e:
+            if "429" in str(e) and attempt < 6:
+                wait = 20 * attempt
+                print(f"    (쓰기 쿼터 초과 — {wait}s 대기 후 재시도 {attempt}/5: {desc})",
+                      flush=True)
+                time.sleep(wait)
+                continue
+            raise
+
+
 def upload_frame(spreadsheet, name: str, frame: pd.DataFrame) -> None:
     frame = frame.fillna("").astype(str)
     rows, cols = frame.shape
@@ -54,20 +74,23 @@ def upload_frame(spreadsheet, name: str, frame: pd.DataFrame) -> None:
         prefix = f"_bak_{name}_"
         for ws in spreadsheet.worksheets():
             if ws.title.startswith(prefix):
-                spreadsheet.del_worksheet(ws)
-        existing.update_title(f"_bak_{name}_{date.today():%m%d}")
+                _retry(f"백업삭제 {ws.title}", spreadsheet.del_worksheet, ws)
+        _retry(f"백업이름 {name}", existing.update_title,
+               f"_bak_{name}_{date.today():%m%d}")
     except gspread.WorksheetNotFound:
         pass
 
-    ws = spreadsheet.add_worksheet(title=name, rows=max(rows + 5, 10),
-                                   cols=max(cols + 2, 5))
-    ws.update([frame.columns.tolist()] + frame.values.tolist(),
-              value_input_option="RAW")
-    ws.freeze(rows=1)
-    ws.format("1:1", {"textFormat": {"bold": True},
-                      "backgroundColor": {"red": 0.12, "green": 0.31, "blue": 0.47},
-                      "horizontalAlignment": "CENTER"})
+    ws = _retry(f"시트생성 {name}", spreadsheet.add_worksheet,
+                title=name, rows=max(rows + 5, 10), cols=max(cols + 2, 5))
+    _retry(f"값입력 {name}", ws.update,
+           [frame.columns.tolist()] + frame.values.tolist(), value_input_option="RAW")
+    _retry(f"고정 {name}", ws.freeze, rows=1)
+    _retry(f"서식 {name}", ws.format, "1:1",
+           {"textFormat": {"bold": True},
+            "backgroundColor": {"red": 0.12, "green": 0.31, "blue": 0.47},
+            "horizontalAlignment": "CENTER"})
     print(f"  업로드 {name:14s} {rows}행 x {cols}열", flush=True)
+    time.sleep(1)   # 분당 쓰기 한도에 여유를 두기 위한 완만한 간격
 
 
 def clean_backups(spreadsheet) -> None:
@@ -75,7 +98,7 @@ def clean_backups(spreadsheet) -> None:
     removed = 0
     for ws in spreadsheet.worksheets():
         if ws.title.startswith("_bak_"):
-            spreadsheet.del_worksheet(ws)
+            _retry(f"삭제 {ws.title}", spreadsheet.del_worksheet, ws)
             print(f"  삭제 {ws.title}", flush=True)
             removed += 1
     print(f"\n백업 시트 {removed}개 삭제 완료")
@@ -99,7 +122,8 @@ def main() -> None:
     # 초기 'Sheet1'/'시트1' 정리
     for junk in ("Sheet1", "시트1"):
         try:
-            spreadsheet.del_worksheet(spreadsheet.worksheet(junk))
+            _retry(f"정리 {junk}", spreadsheet.del_worksheet,
+                   spreadsheet.worksheet(junk))
         except gspread.WorksheetNotFound:
             pass
 
