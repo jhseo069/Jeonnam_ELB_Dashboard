@@ -22,6 +22,7 @@ from dataclasses import dataclass, asdict, field
 import pdfplumber
 
 AGENDA_HEAD_RE = re.compile(r"^\s*(\d{1,2})\.\s*(.+?\(안\))\s*$")
+ARROW_RE = re.compile(r"^(?:→|➔|⇒|->|-\+|-»|=>|—>|–>)\s*")
 FIELD_RE = re.compile(r"^\s*[ㅇoO○●·▫0]?\s*([^:：]{2,14})\s*[:：]\s*(.*)$")
 
 FIELD_ALIASES = {
@@ -142,6 +143,7 @@ def _parse_lines(lines, document_name: str, round_no: int | None,
     items: list[AgendaItem] = []
     current: AgendaItem | None = None
     last_section = None
+    last_field: str | None = None      # 줄바꿈으로 이어지는 값을 붙일 직전 칸
 
     for line, section, page_no in lines:
         if last_section is not None and section != last_section:
@@ -159,6 +161,7 @@ def _parse_lines(lines, document_name: str, round_no: int | None,
                 회차=round_no, 안건번호=head.group(1), 안건명=title,
                 안건유형=classify_agenda_type(title),
                 출처문서명=document_name, 출처페이지=page_no, 추출방식=추출방식)
+            last_field = None
             continue
 
         if current is None:
@@ -166,7 +169,17 @@ def _parse_lines(lines, document_name: str, round_no: int | None,
 
         field_match = FIELD_RE.match(line)
         if not field_match:
+            # 칸 값이 두 줄로 이어지는 경우('…산50번지 일원' / '→ 전남 진도군 …'):
+            # 다음 줄이 화살표로 시작하거나 앞 값이 화살표로 끝나면 이어 붙인다.
+            # OCR 은 화살표를 '-+', '-»', '=>' 등으로 읽기도 한다 → '→' 로 정규화
+            text = ARROW_RE.sub("→ ", line.strip(), count=1).strip()
+            if last_field and text and (text.startswith("→")
+                                        or str(getattr(current, last_field) or "")
+                                        .rstrip().endswith("→")):
+                setattr(current, last_field,
+                        f"{getattr(current, last_field)} {text}".strip())
             continue
+        last_field = None
         key = re.sub(r"\s+", " ", field_match.group(1)).strip()
         value = field_match.group(2).strip()
         mapped = FIELD_ALIASES.get(key) or FIELD_ALIASES.get(key.replace(" ", ""))
@@ -178,6 +191,8 @@ def _parse_lines(lines, document_name: str, round_no: int | None,
             current.총사업비_억원 = parse_cost(value)
         elif mapped:
             setattr(current, mapped, value)
+            if mapped in ("발전소위치", "사업주체", "최대주주"):
+                last_field = mapped
         else:
             current.기타필드[key] = value
 

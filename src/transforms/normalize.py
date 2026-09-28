@@ -109,6 +109,22 @@ JEONNAM_COUNTIES = ("담양군", "곡성군", "구례군", "고흥군", "보성�
 JEONNAM_SHORT = tuple(name[:-1] for name in JEONNAM_CITIES + JEONNAM_COUNTIES)
 
 
+def split_location_change(location: str) -> tuple[str, str]:
+    """'변경 전 → 변경 후' 위치를 (변경 전, 현재) 로 나눈다. 화살표가 없으면 (원문, 원문).
+
+    '→ (변경) 전남 영암군 …' 처럼 붙은 표지는 떼고, 변경 후 부분에 지명이 없으면
+    (예: '→ 전남 신안군 자은면'처럼 잘린 경우도 시군구는 있으니 사용) 변경 전을 쓴다.
+    OCR 오독 '진도옵'→'진도읍' 도 여기서 바로잡는다(행정구역에 '옵'은 없다).
+    """
+    text = re.sub(r"(\S)옵(\s|$)", r"\1읍\2", str(location or ""))
+    parts = [p.strip() for p in re.split(r"→|->", text)]
+    before = parts[0]
+    after = re.sub(r"^\(?\s*변경\s*\)?\s*", "", parts[-1]) if len(parts) > 1 else ""
+    if after and classify_region(after)[1]:
+        return before, after
+    return before, before or text
+
+
 def classify_region(location: str) -> tuple[str, str, str]:
     """위치 원문 -> (지역, 시군구, 판정상태).
 

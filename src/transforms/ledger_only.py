@@ -16,6 +16,7 @@ import re
 from rapidfuzz import fuzz
 
 from .dedup import name_core
+from .enrich import project_sigungus
 from .merge import make_project_id, sequence_signature
 
 COMPANY_MATCH = 80
@@ -65,25 +66,26 @@ def build_ledger_only_projects(master: list[dict], ledger: list[dict]) -> list[d
     past_keys: list[tuple[str, str, float]] = []
     alias_caps: list[tuple[str, str, float]] = []   # 회의록 사업명 핵심·용량
     for project in master:
-        sigungu = project.get("시군구") or ""
-        for alias in str(project.get("발전소명_원문") or "").split(" | "):
-            if alias:
-                matched_keys.add((name_core(alias), sigungu))
-        matched_keys.add((name_core(str(project.get("사업주체") or "")), sigungu))
-        # 과거 사업주체(최초허가 당시 상호)는 용량이 맞을 때만 같은 사업으로 본다
-        # (enrich.match_ledger_rows 와 같은 조건 — 같은 회사의 다른 사업을 지우지 않게).
         try:
             cap = float(project.get("설비용량_MW"))
             cap = None if cap != cap else cap
         except (TypeError, ValueError):
             cap = None
-        for past in str(project.get("사업주체_이력") or "").split(" | "):
-            if past and cap is not None:
-                past_keys.append((name_core(past), sigungu, cap))
-        if cap is not None:
+        # 위치가 바뀐 사업은 변경 전 시군구의 허가대장 행도 이 사업이다(장병도 신안→진도)
+        for sigungu in project_sigungus(project) or {""}:
             for alias in str(project.get("발전소명_원문") or "").split(" | "):
                 if alias:
-                    alias_caps.append((_compact(alias), sigungu, cap))
+                    matched_keys.add((name_core(alias), sigungu))
+            matched_keys.add((name_core(str(project.get("사업주체") or "")), sigungu))
+            # 과거 사업주체(최초허가 당시 상호)는 용량이 맞을 때만 같은 사업으로 본다
+            # (enrich.match_ledger_rows 와 같은 조건 — 같은 회사의 다른 사업을 지우지 않게).
+            for past in str(project.get("사업주체_이력") or "").split(" | "):
+                if past and cap is not None:
+                    past_keys.append((name_core(past), sigungu, cap))
+            if cap is not None:
+                for alias in str(project.get("발전소명_원문") or "").split(" | "):
+                    if alias:
+                        alias_caps.append((_compact(alias), sigungu, cap))
 
     def already_covered(company_core: str, sigungu: str, rows: list[dict]) -> bool:
         if any(mk[1] == sigungu and mk[0] and

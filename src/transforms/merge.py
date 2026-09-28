@@ -19,7 +19,8 @@ from dataclasses import dataclass, field
 from rapidfuzz import fuzz
 
 from .dedup import location_core
-from .normalize import EXCLUDED_TOKENS, classify_region, normalize_company
+from .normalize import (EXCLUDED_TOKENS, classify_region, normalize_company,
+                        split_location_change)
 
 # 안건명 꼬리표: '~ 허가(안)', '~ 변경허가(안)' 등을 떼어 사업명만 남긴다
 AGENDA_SUFFIX_RE = re.compile(
@@ -169,11 +170,12 @@ def build_projects(agenda_records: list[dict]) -> dict[str, Project]:
         canonical = canonical_project_name(title)
         if not canonical:
             continue
-        location = record.get("발전소위치", "")
-        region, sigungu, _ = classify_region(location)
+        location = record.get("발전소위치", "") or ""
+        location_before, location_now = split_location_change(location)
+        region, sigungu, _ = classify_region(location_before)
         key = matching_key(canonical)
         company = normalize_company(record.get("사업주체") or "")
-        core = location_core(location or "")
+        core = location_core(location_before)
 
         project_id = None
         review_note = ""
@@ -243,6 +245,13 @@ def build_projects(agenda_records: list[dict]) -> dict[str, Project]:
                 value = (record.get(src_field) or "").strip()
                 if value:
                     setattr(project, dst_field, value)
+            # 위치 변경 안건('신안 하의면 … → 진도 진도읍 …')이면 대표 지역·시군구는
+            # 변경 후 위치로 옮긴다. 사업 묶기(index)는 변경 전 시군구로 유지해
+            # 과거 회차 안건과 계속 연결된다.
+            if location_now != location_before:
+                now_region, now_sigungu, _ = classify_region(location_now)
+                if now_sigungu:
+                    project.지역, project.시군구 = now_region, now_sigungu
             for src_field, dst_field in (("설비용량_MW", "설비용량_MW"),
                                          ("총사업비_억원", "총사업비_억원")):
                 try:

@@ -15,7 +15,7 @@ from dataclasses import dataclass
 
 from rapidfuzz import fuzz
 
-from .normalize import normalize_company
+from .normalize import classify_region, normalize_company, split_location_change
 
 COMPANY_MATCH_THRESHOLD = 90      # 사업자명 유사도 기준
 CAPACITY_TOLERANCE_MW = 0.05      # 용량 일치로 볼 오차
@@ -40,6 +40,19 @@ def _name_tokens(text: str) -> str:
     return re.sub(r"\s+", "", normalize_company(text or "")).lower()
 
 
+def project_sigungus(project: dict) -> set[str]:
+    """사업이 거쳐간 시군구: 현재 + 위치 변경 전('신안 … → 진도 …'의 신안).
+
+    허가대장은 행마다 당시 위치로 적혀 있어(장병도: 신안 → 2024-11 진도) 현재
+    시군구만으로 대조하면 변경 전 행을 놓친다.
+    """
+    out = {(project.get("시군구") or "").strip()}
+    before, _ = split_location_change(str(project.get("허가위치_원문") or ""))
+    out.add(classify_region(before)[1])
+    out.discard("")
+    return out
+
+
 def _family(source) -> str:
     """발전원 계열: 태양광 / 풍력(육상·해상·미상). 그 외·미상은 빈 문자열."""
     s = str(source or "")
@@ -58,6 +71,7 @@ def match_ledger_rows(project: dict, ledger_rows: list[dict]) -> tuple[list[dict
     sigungu = (project.get("시군구") or "").strip()
     if not sigungu:
         return [], "", "낮음"
+    sigungus = project_sigungus(project)
 
     company_key = _name_tokens(project.get("사업주체", ""))
     # 심의 이력상 과거 사업주체(최초허가 당시 상호·SPC 전환 전 모회사). 허가대장은 최초
@@ -73,7 +87,7 @@ def match_ledger_rows(project: dict, ledger_rows: list[dict]) -> tuple[list[dict
     by_company, by_name, by_capacity = [], [], []
     by_past: dict[str, list[dict]] = {}          # 과거 사업주체 매칭(허가대장 상호별)
     for row in ledger_rows:
-        if (row.get("시군구") or "").strip() != sigungu:
+        if (row.get("시군구") or "").strip() not in sigungus:
             continue                       # 시군구가 다르면 후보로 보지 않는다
         # 같은 사업자가 한 시군구에 태양광·풍력을 함께 가진 경우(대한그린에너지: 영광
         # 염산 풍력 + 백수 태양광) 다른 발전원 사업의 허가일이 섞이지 않게 한다.

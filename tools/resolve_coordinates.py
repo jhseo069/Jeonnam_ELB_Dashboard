@@ -24,6 +24,7 @@ sys.path.insert(0, str(ROOT / "src"))
 load_dotenv(ROOT / ".env")
 
 from transforms.coordinates import resolve_offshore                       # noqa: E402
+from transforms.normalize import split_location_change                   # noqa: E402
 from transforms.vworld_geocode import VWorldGeocoder                      # noqa: E402
 
 MASTER = ROOT / "data/processed/발전소_통합목록.csv"
@@ -69,9 +70,15 @@ def main() -> None:
         coord = None
 
         if source == "해상풍력":
-            key = f"{name_core(str(record.get('사업주체') or ''))}|{record.get('시군구') or ''}"
-            hit = offshore.get((name_core(str(record.get('사업주체') or '')),
-                                record.get("시군구") or ""))
+            # 허가대장 좌표는 최초허가 당시 상호로 적혀 있으므로 과거 사업주체로도 찾는다
+            names = [str(record.get("사업주체") or "")] + \
+                str(record.get("사업주체_이력") or "").split(" | ")
+            hit = None
+            for company in names:
+                hit = offshore.get((name_core(company), record.get("시군구") or "")) \
+                    if company.strip() else None
+                if hit:
+                    break
             if hit:
                 coord = {**hit}
             else:
@@ -79,7 +86,8 @@ def main() -> None:
                          "좌표정확도": "좌표없음",
                          "판정근거": "해상 사업구역 좌표 없음 — 임의 배치 안 함"}
         else:
-            address = str(record.get("허가위치_원문") or "")
+            # 위치 변경('… → …')이면 변경 후 주소로 지오코딩
+            address = split_location_change(str(record.get("허가위치_원문") or ""))[1]
             if address in cache:
                 coord = cache[address]
             elif address.strip():
