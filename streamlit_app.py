@@ -33,7 +33,8 @@ st.set_page_config(page_title="전남·광주 발전사업 현황", layout="wide
 
 # ── 데이터/키 로딩 ──────────────────────────────────────────────────
 @st.cache_data
-def load_data() -> tuple[list[dict], dict]:
+def load_data(mtime: float) -> tuple[list[dict], dict]:
+    """mtime 을 캐시 키로 받아, data.json 이 갱신되면 캐시를 새로 읽는다."""
     payload = json.loads(DATA_PATH.read_text(encoding="utf-8"))
     return payload["plants"], payload.get("meta", {})
 
@@ -66,7 +67,7 @@ def clean_domain(raw: str) -> str:
     return d.rstrip("/")
 
 
-plants, meta = load_data()
+plants, meta = load_data(DATA_PATH.stat().st_mtime)
 df = pd.DataFrame(plants)
 VWORLD_KEY = get_secret("VWORLD_API_KEY").strip()
 VWORLD_DOMAIN = clean_domain(get_secret("VWORLD_DOMAIN", "localhost"))
@@ -98,6 +99,14 @@ basemap = st.sidebar.selectbox(
     ["위성지도 (지명 표시)", "위성지도 (사진만)", "일반지도", "일반지도 (회색)"])
 BASEMAP_CODE = {"위성지도 (지명 표시)": "photo-hybrid", "위성지도 (사진만)": "photo",
                 "일반지도": "graphic", "일반지도 (회색)": "graphic-gray"}[basemap]
+
+SORT_OPTIONS = {
+    "최근 심의순": ("round", False),
+    "최초허가일 최신순": ("firstPermit", False),
+    "설비용량 큰 순": ("mw", False),
+    "발전소명 가나다순": ("name", True),
+}
+sort_sel = st.sidebar.selectbox("목록 정렬", list(SORT_OPTIONS))
 
 st.sidebar.caption("지도의 점을 클릭하면 발전소 정보가 표시됩니다.")
 
@@ -158,14 +167,24 @@ else:
 
 # ── 표 ──────────────────────────────────────────────────────────────
 st.markdown("##### 발전소 목록")
-show = fdf.rename(columns={
+# 정렬: 값 없는 행(허가대장전용 등 회차·허가일 없음)은 항상 뒤로
+sort_col, ascending = SORT_OPTIONS[sort_sel]
+sdf = fdf.copy()
+if sort_col in ("round", "mw"):
+    sdf["_k"] = pd.to_numeric(sdf[sort_col], errors="coerce")
+else:
+    sdf["_k"] = sdf[sort_col].replace("", None)
+sdf = sdf.sort_values("_k", ascending=ascending, na_position="last", kind="stable")
+sdf["최근심의"] = pd.to_numeric(sdf["round"], errors="coerce").map(
+    lambda r: f"제{int(r)}차" if pd.notna(r) else "")
+show = sdf.rename(columns={
     "name": "발전소명", "src": "발전원", "region": "지역", "sgg": "시군구",
     "operator": "사업주체", "owner": "최대주주", "mw": "설비용량(MW)",
     "cost": "총사업비(억원)", "firstPermit": "최초허가일", "agendaType": "최근안건유형",
     "status": "데이터상태", "loc": "허가위치",
 })
-cols = ["발전소명", "발전원", "지역", "시군구", "사업주체", "최대주주",
-        "설비용량(MW)", "총사업비(억원)", "최초허가일", "최근안건유형", "데이터상태", "허가위치"]
+cols = ["발전소명", "발전원", "지역", "시군구", "최근심의", "최근안건유형", "사업주체",
+        "최대주주", "설비용량(MW)", "총사업비(억원)", "최초허가일", "데이터상태", "허가위치"]
 st.dataframe(show[[c for c in cols if c in show.columns]],
              use_container_width=True, hide_index=True, height=380)
 
