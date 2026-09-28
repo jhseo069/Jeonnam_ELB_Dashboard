@@ -18,11 +18,12 @@ from dataclasses import dataclass, field
 
 from rapidfuzz import fuzz
 
+from .dedup import location_core
 from .normalize import EXCLUDED_TOKENS, classify_region, normalize_company
 
 # 안건명 꼬리표: '~ 허가(안)', '~ 변경허가(안)' 등을 떼어 사업명만 남긴다
 AGENDA_SUFFIX_RE = re.compile(
-    r"\s*(?:발전사업\s*)?(?:신규|조건부)?\s*"
+    r"\s*(?:발전\s*(?:사)?업\s*)?(?:신규|조건부)?\s*"   # 원문 오기 '발전업'도 처리(제320차)
     r"(?:허가|변경허가|양수인가|양수\s*인가|주식취득\s*인가|주식취득|승인|인가|"
     r"과징금\s*부과|허가취소|취소)\s*\(안\)\s*$")
 TRAILING_PAREN_RE = re.compile(r"\s*\(안\)\s*$")
@@ -147,6 +148,7 @@ def build_projects(agenda_records: list[dict]) -> dict[str, Project]:
     """회의록 안건을 사업 단위로 묶는다. 안건 1건 = 이력 1건, 사업 1개 = 여러 이력."""
     projects: dict[str, Project] = {}
     index: list[tuple[str, str, str]] = []      # (비교키, 시군구, 프로젝트ID)
+    evidence: dict[str, tuple[set, set]] = {}   # 프로젝트ID -> (사업주체들, 지번핵심들)
 
     for record in agenda_records:
         title = record.get("안건명", "")
@@ -156,6 +158,8 @@ def build_projects(agenda_records: list[dict]) -> dict[str, Project]:
         location = record.get("발전소위치", "")
         region, sigungu, _ = classify_region(location)
         key = matching_key(canonical)
+        company = normalize_company(record.get("사업주체") or "")
+        core = location_core(location or "")
 
         project_id = None
         review_note = ""
@@ -170,6 +174,14 @@ def build_projects(agenda_records: list[dict]) -> dict[str, Project]:
                 continue
             score = fuzz.ratio(existing_key, key)
             if score >= FUZZY_THRESHOLD:
+                # 이름 유사도만으로 합치지 않는다(지침 §11). 공통 꼬리('에너지 태양광')가
+                # 길면 '무안왕산에너지'/'무안산들에너지'도 90점을 넘는다. 사업주체나
+                # 위치 지번 중 하나라도 겹쳐야 같은 사업으로 본다.
+                companies, cores = evidence[existing_id]
+                if (company and companies and company not in companies
+                        and core and cores and core not in cores):
+                    review_note = f"유사 사업명 {score:.0f}점(주체·지번 상이): {existing_id}"
+                    continue
                 project_id = existing_id
                 break
             if FUZZY_REVIEW_BAND[0] <= score < FUZZY_REVIEW_BAND[1]:
@@ -183,6 +195,11 @@ def build_projects(agenda_records: list[dict]) -> dict[str, Project]:
                 지역=region, 시군구=sigungu, 중복의심=review_note)
 
         project = projects[project_id]
+        ev_companies, ev_cores = evidence.setdefault(project_id, (set(), set()))
+        if company:
+            ev_companies.add(company)
+        if core:
+            ev_cores.add(core)
         if canonical not in project.발전소명_원문:
             project.발전소명_원문.append(canonical)
         project.이력건수 += 1
