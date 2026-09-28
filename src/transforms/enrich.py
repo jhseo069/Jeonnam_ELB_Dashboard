@@ -40,6 +40,16 @@ def _name_tokens(text: str) -> str:
     return re.sub(r"\s+", "", normalize_company(text or "")).lower()
 
 
+def _family(source) -> str:
+    """발전원 계열: 태양광 / 풍력(육상·해상·미상). 그 외·미상은 빈 문자열."""
+    s = str(source or "")
+    if "태양광" in s:
+        return "태양광"
+    if "풍력" in s:
+        return "풍력"
+    return ""
+
+
 def match_ledger_rows(project: dict, ledger_rows: list[dict]) -> tuple[list[dict], str, str]:
     """한 사업에 해당하는 허가대장 행들을 고른다.
 
@@ -50,20 +60,35 @@ def match_ledger_rows(project: dict, ledger_rows: list[dict]) -> tuple[list[dict
         return [], "", "낮음"
 
     company_key = _name_tokens(project.get("사업주체", ""))
+    # 심의 이력상 과거 사업주체(최초허가 당시 상호·SPC 전환 전 모회사). 허가대장은 최초
+    # 허가 당시 상호로 적혀 있어 최신 사업주체만으로는 최초허가 행을 못 찾는다.
+    past_keys = {_name_tokens(c) for c in
+                 str(project.get("사업주체_이력") or "").split(" | ") if c}
+    past_keys.discard("")
+    past_keys.discard(company_key)
     name_key = _name_tokens(project.get("발전소명", ""))
     capacity = project.get("설비용량_MW")
     capacity = float(capacity) if capacity not in (None, "", "nan") else None
 
     by_company, by_name, by_capacity = [], [], []
+    by_past: dict[str, list[dict]] = {}          # 과거 사업주체 매칭(허가대장 상호별)
     for row in ledger_rows:
         if (row.get("시군구") or "").strip() != sigungu:
             continue                       # 시군구가 다르면 후보로 보지 않는다
+        # 같은 사업자가 한 시군구에 태양광·풍력을 함께 가진 경우(대한그린에너지: 영광
+        # 염산 풍력 + 백수 태양광) 다른 발전원 사업의 허가일이 섞이지 않게 한다.
+        if _family(project.get("발전원")) and _family(row.get("발전원_표준")) \
+                and _family(project.get("발전원")) != _family(row.get("발전원_표준")):
+            continue
         ledger_key = _name_tokens(row.get("사업자", ""))
         if not ledger_key:
             continue
 
         if company_key and fuzz.ratio(company_key, ledger_key) >= COMPANY_MATCH_THRESHOLD:
             by_company.append(row)
+            continue
+        if any(fuzz.ratio(k, ledger_key) >= COMPANY_MATCH_THRESHOLD for k in past_keys):
+            by_past.setdefault(ledger_key, []).append(row)
             continue
         if name_key and fuzz.partial_ratio(name_key, ledger_key) >= NAME_MATCH_THRESHOLD:
             by_name.append(row)
@@ -73,8 +98,18 @@ def match_ledger_rows(project: dict, ledger_rows: list[dict]) -> tuple[list[dict
             if abs(float(row_capacity) - capacity) <= CAPACITY_TOLERANCE_MW:
                 by_capacity.append(row)
 
-    if by_company:
-        return by_company, "사업주체명 일치 + 시군구 일치", "높음"
+    # 과거 사업주체 매칭은 그 상호의 허가대장 행 중 용량이 이 사업과 일치하는 게 있을
+    # 때만 쓴다. 같은 회사의 다른 사업(대한그린에너지 염산 49.8MW ≠ 영광풍력 79.6MW)을
+    # 배제하면서, 용량이 변경된 동일 사업(신안어의 16→99MW)은 행 전체를 살린다.
+    past_rows = []
+    for rows in by_past.values():
+        if capacity is not None and any(
+                row.get("설비용량_MW_표준") not in (None, "", "nan")
+                and abs(float(row["설비용량_MW_표준"]) - capacity) <= max(1.0, capacity * 0.02)
+                for row in rows):
+            past_rows += rows
+    if by_company or past_rows:
+        return by_company + past_rows, "사업주체명 일치 + 시군구 일치", "높음"
     if by_name:
         return by_name, "사업명-사업자명 일치 + 시군구 일치", "보통"
     if by_capacity:

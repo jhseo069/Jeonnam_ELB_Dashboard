@@ -11,10 +11,12 @@
 
 from __future__ import annotations
 
+import re
+
 from rapidfuzz import fuzz
 
 from .dedup import name_core
-from .merge import make_project_id
+from .merge import make_project_id, sequence_signature
 
 COMPANY_MATCH = 80
 
@@ -40,20 +42,69 @@ def _representative_capacity(rows: list[dict]) -> float | None:
     return None
 
 
+def _compact(text) -> str:
+    """잘림 비교용: 공백·법인표기만 지운 원문(지역명 등은 남긴다)."""
+    return re.sub(r"[\s㈜()（）]|주식회사", "", str(text or ""))
+
+
+def _caps(rows: list[dict]) -> set[float]:
+    out = set()
+    for r in rows:
+        try:
+            v = float(r.get("설비용량_MW_표준"))
+        except (TypeError, ValueError):
+            continue
+        if v == v:
+            out.add(round(v, 2))
+    return out
+
+
 def build_ledger_only_projects(master: list[dict], ledger: list[dict]) -> list[dict]:
     """통합목록에 없는 허가대장 사업을 발전소 레코드 목록으로 만든다."""
     matched_keys = set()
+    past_keys: list[tuple[str, str, float]] = []
+    alias_caps: list[tuple[str, str, float]] = []   # 회의록 사업명 핵심·용량
     for project in master:
         sigungu = project.get("시군구") or ""
         for alias in str(project.get("발전소명_원문") or "").split(" | "):
             if alias:
                 matched_keys.add((name_core(alias), sigungu))
         matched_keys.add((name_core(str(project.get("사업주체") or "")), sigungu))
+        # 과거 사업주체(최초허가 당시 상호)는 용량이 맞을 때만 같은 사업으로 본다
+        # (enrich.match_ledger_rows 와 같은 조건 — 같은 회사의 다른 사업을 지우지 않게).
+        try:
+            cap = float(project.get("설비용량_MW"))
+            cap = None if cap != cap else cap
+        except (TypeError, ValueError):
+            cap = None
+        for past in str(project.get("사업주체_이력") or "").split(" | "):
+            if past and cap is not None:
+                past_keys.append((name_core(past), sigungu, cap))
+        if cap is not None:
+            for alias in str(project.get("발전소명_원문") or "").split(" | "):
+                if alias:
+                    alias_caps.append((_compact(alias), sigungu, cap))
 
-    def already_covered(company_core: str, sigungu: str) -> bool:
-        return any(mk[1] == sigungu and mk[0] and
-                   fuzz.ratio(mk[0], company_core) >= COMPANY_MATCH
-                   for mk in matched_keys)
+    def already_covered(company_core: str, sigungu: str, rows: list[dict]) -> bool:
+        if any(mk[1] == sigungu and mk[0] and
+               fuzz.ratio(mk[0], company_core) >= COMPANY_MATCH for mk in matched_keys):
+            return True
+        for core, sgg, cap in past_keys:
+            if sgg == sigungu and core and fuzz.ratio(core, company_core) >= COMPANY_MATCH:
+                if any(r.get("설비용량_MW_표준") not in (None, "", "nan")
+                       and abs(float(r["설비용량_MW_표준"]) - cap) <= max(1.0, cap * 0.02)
+                       for r in rows):
+                    return True
+        # 허가대장 상호가 잘려('진도그린태', '밝은고흥태양') 회의록 사업명의 앞부분만 남은
+        # 경우: 앞부분 4자 이상 일치 + 같은 시군구 + 용량 일치면 이미 있는 사업이다.
+        head = _compact(rows[0].get("사업자_표준") or rows[0].get("사업자"))
+        if len(head) >= 4:
+            caps = _caps(rows)
+            for core, sgg, cap in alias_caps:
+                if sgg == sigungu and core.startswith(head) and \
+                        any(abs(c - cap) <= max(0.05, cap * 0.005) for c in caps):
+                    return True
+        return False
 
     # 사업자×시군구로 허가대장 행 묶기
     groups: dict[tuple[str, str], list[dict]] = {}
@@ -67,9 +118,28 @@ def build_ledger_only_projects(master: list[dict], ledger: list[dict]) -> list[d
             continue
         groups.setdefault((company_core, sigungu), []).append(row)
 
+    # 허가대장 PDF 줄바꿈으로 상호가 잘려 같은 회사가 두 묶음이 된 경우
+    # ('이촌태양광발'/'이촌태양광발 전', '에이치원에너'/'에이치원에너 지') 합친다.
+    # 앞부분 4자 이상 일치 + 같은 시군구 + 용량 일치가 모두 맞을 때만.
+    def raw(key):
+        return _compact(groups[key][0].get("사업자_표준") or groups[key][0].get("사업자"))
+
+    for short in sorted(groups, key=lambda k: len(raw(k))):
+        if short not in groups or len(raw(short)) < 4:
+            continue
+        for long_ in list(groups):
+            if long_ == short or long_[1] != short[1] or not raw(long_).startswith(raw(short)):
+                continue
+            # '안좌스마트팜앤쏠라시티' ⊂ '…쏠라시티2' 처럼 뒤에 순번이 붙으면 별개 사업
+            if sequence_signature(raw(long_)) != sequence_signature(raw(short)):
+                continue
+            if _caps(groups[short]) & _caps(groups[long_]):
+                groups[long_] += groups.pop(short)
+                break
+
     new_projects = []
     for (company_core, sigungu), rows in groups.items():
-        if already_covered(company_core, sigungu):
+        if already_covered(company_core, sigungu, rows):
             continue
 
         representative = rows[0]

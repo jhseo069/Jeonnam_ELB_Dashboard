@@ -171,6 +171,7 @@ def main() -> None:
     projects = pd.DataFrame([asdict(p) for p in
                              build_projects(target.to_dict("records")).values()])
     projects["발전소명_원문"] = projects["발전소명_원문"].apply(lambda x: " | ".join(x))
+    projects["사업주체_이력"] = projects["사업주체_이력"].apply(lambda x: " | ".join(x))
     projects = projects[projects["발전원"].isin(TARGET_SOURCES)]
 
     # 지역 재확인: '경기도 광주시'처럼 타 광역이 '광주' 문자에 걸려든 건을 뺀다

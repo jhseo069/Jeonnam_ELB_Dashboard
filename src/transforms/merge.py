@@ -25,7 +25,11 @@ from .normalize import EXCLUDED_TOKENS, classify_region, normalize_company
 AGENDA_SUFFIX_RE = re.compile(
     r"\s*(?:발전\s*(?:사)?업\s*)?(?:신규|조건부)?\s*"   # 원문 오기 '발전업'도 처리(제320차)
     r"(?:허가|변경허가|양수인가|양수\s*인가|주식취득\s*인가|주식취득|승인|인가|"
-    r"과징금\s*부과|허가취소|취소)\s*\(안\)\s*$")
+    r"과징금\s*부과|허가취소|취소|(?:계통연계점\s*)?변경|변견|법인\s*분할)\s*(?:\(안\))?\s*$")
+# 안건명 앞 사업자명 접두: '신안대광해상풍력(주)의 신안 대광 해상풍력'. 법인 표기가 있는
+# 경우만 뗀다('영광군 영광의 미래'처럼 이름 자체에 '의'가 든 경우를 건드리지 않게).
+OPERATOR_PREFIX_RE = re.compile(
+    r"^(?:\S*(?:\(주\)|㈜|（주）|주식회사)\S*?|\S{4,})의\s+(?=\S+\s+\S)")
 TRAILING_PAREN_RE = re.compile(r"\s*\(안\)\s*$")
 # 사업명 앞뒤 군더더기
 NOISE_RE = re.compile(r"[\s㈜()（）\[\]{}·,，.]+")
@@ -36,8 +40,10 @@ FUZZY_REVIEW_BAND = (80, 88)  # 이 구간은 '중복의심'으로 검수에 넘
 
 def canonical_project_name(agenda_title: str) -> str:
     """안건명에서 사업명만 남긴다. '영광 칠해1 해상풍력 발전사업 허가(안)' -> '영광 칠해1 해상풍력 발전사업'."""
-    name = AGENDA_SUFFIX_RE.sub("", agenda_title or "")
-    name = TRAILING_PAREN_RE.sub("", name)
+    name = TRAILING_PAREN_RE.sub("", (agenda_title or "").strip())
+    name = AGENDA_SUFFIX_RE.sub("", name)
+    name = AGENDA_SUFFIX_RE.sub("", name)          # '발전사업 계통연계점 변경' 이중 꼬리
+    name = OPERATOR_PREFIX_RE.sub("", name)
     return re.sub(r"\s+", " ", name).strip()
 
 
@@ -47,6 +53,7 @@ def matching_key(name: str) -> str:
 
 
 SEQUENCE_UNIT_RE = re.compile(r"(\d+)(호기|호|단계|단지|차|블록|블럭|지구|구역|공구)")
+HANGUL_NUM_RE = re.compile(r"([가-힣])(\d+)(?![\d.])")
 
 
 def sequence_signature(key: str) -> tuple[str, ...]:
@@ -59,7 +66,11 @@ def sequence_signature(key: str) -> tuple[str, ...]:
     지번·용량 등 단위 없는 맨숫자는 대상이 아니다(그것까지 막으면 표기가
     흔들리는 같은 사업이 갈라진다). '1호'와 '2호'처럼 단위가 붙은 순번만 본다.
     """
-    return tuple(sorted(f"{n}{u}" for n, u in SEQUENCE_UNIT_RE.findall(key or "")))
+    units = {f"{n}{u}" for n, u in SEQUENCE_UNIT_RE.findall(key or "")}
+    # 한글 바로 뒤 번호도 순번이다: '다도1/다도2', '해마해상풍력1/2', '해송해상풍력3'.
+    # (단위 없이 붙은 번호라 위 규칙에 안 걸려 해상풍력 단지들이 합쳐졌다)
+    units |= {f"{c}{n}" for c, n in HANGUL_NUM_RE.findall(key or "")}
+    return tuple(sorted(units))
 
 
 def make_project_id(canonical_name: str, sigungu: str) -> str:
@@ -96,6 +107,9 @@ class Project:
     대표출처: str = ""
     출처페이지: str = ""
     이력건수: int = 0
+    # 심의 이력상 거쳐간 사업주체 전부(양수·SPC 전환 전 모회사 포함). 허가대장은 최초
+    # 허가 당시 상호로 적혀 있어, 최신 사업주체만으로는 최초허가 행을 못 찾는다.
+    사업주체_이력: list[str] = field(default_factory=list)
 
 
 # 사업명에 실제로 적힌 표기만 근거로 삼는다. 위치·용량으로 추정하지 않는다.
@@ -177,11 +191,19 @@ def build_projects(agenda_records: list[dict]) -> dict[str, Project]:
                 # 이름 유사도만으로 합치지 않는다(지침 §11). 공통 꼬리('에너지 태양광')가
                 # 길면 '무안왕산에너지'/'무안산들에너지'도 90점을 넘는다. 사업주체나
                 # 위치 지번 중 하나라도 겹쳐야 같은 사업으로 본다.
+                # 해상풍력은 지번이 없어(공유수면) 지번 비교가 불가하므로, 사업주체가
+                # 다르면 지번이 실제로 일치할 때만 병합한다.
                 companies, cores = evidence[existing_id]
                 if (company and companies and company not in companies
-                        and core and cores and core not in cores):
+                        and not (core and core in cores)):
                     review_note = f"유사 사업명 {score:.0f}점(주체·지번 상이): {existing_id}"
                     continue
+                project_id = existing_id
+                break
+            # 지역 접두 유무('맹골도 해상풍력'/'진도 맹골도 해상풍력', 87.5점)는 사업주체가
+            # 같고 한쪽 이름이 다른 쪽을 포함할 때 같은 사업으로 본다.
+            if (company and company in evidence[existing_id][0]
+                    and (key in existing_key or existing_key in key)):
                 project_id = existing_id
                 break
             if FUZZY_REVIEW_BAND[0] <= score < FUZZY_REVIEW_BAND[1]:
@@ -203,6 +225,10 @@ def build_projects(agenda_records: list[dict]) -> dict[str, Project]:
         if canonical not in project.발전소명_원문:
             project.발전소명_원문.append(canonical)
         project.이력건수 += 1
+        for part in re.split(r"→|->", str(record.get("사업주체") or "")):
+            part = part.strip()
+            if part and part != "nan" and part not in project.사업주체_이력:
+                project.사업주체_이력.append(part)
 
         # 대표값은 최신 회차 기준으로 갱신한다
         round_no = record.get("회차")

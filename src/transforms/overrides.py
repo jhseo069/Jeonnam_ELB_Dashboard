@@ -139,6 +139,27 @@ def apply_overrides(master: pd.DataFrame) -> tuple[pd.DataFrame, list[dict]]:
                            "전남 해상풍력 2단계", "사업자명 접두 표기차 동일사업 병합")
     drop_idx += merge_same(lambda s: "전남해상풍력3단계" in _nc(s), 399.0,
                            "전남 해상풍력 3단계", "사업자명 접두 표기차 동일사업 병합")
+    # 여수 다도1·다도2: '다도오션윈드팜㈜의 …'/'여수 다도N …' 표기차. 회차별로 용량이
+    # 바뀌어(다도1 304→256→304) 용량 일치 조건을 못 쓰므로 최신 회차 값을 대표로 둔다.
+    def merge_latest(name_filter, keep_name, why):
+        idx = list(m[m["발전소명"].map(name_filter)].index)
+        if len(idx) < 2:
+            return []
+        idx.sort(key=lambda i: -_to_float(m.at[i, "최근전기위원회회차"]))
+        keep = idx[0]
+        aliases = set()
+        for i in idx:
+            aliases.update(a for a in str(m.at[i, "발전소명_원문"]).split(" | ") if a)
+        m.at[keep, "발전소명"] = keep_name
+        m.at[keep, "발전소명_원문"] = " | ".join(sorted(aliases))
+        for i in idx[1:]:
+            removed.append({**m.loc[i].to_dict(), "제외사유": why})
+        return idx[1:]
+
+    drop_idx += merge_latest(lambda s: _nc(s).endswith("여수다도1해상풍력"),
+                             "여수 다도1 해상풍력", "사업자명 접두 표기차 동일사업 병합")
+    drop_idx += merge_latest(lambda s: _nc(s).endswith("여수다도2해상풍력"),
+                             "여수 다도2 해상풍력", "사업자명 접두 표기차 동일사업 병합")
     if drop_idx:
         m = m.drop(index=drop_idx)
 
