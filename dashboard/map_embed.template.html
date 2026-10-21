@@ -145,7 +145,9 @@ function buildMap(){
   })();
   setTimeout(()=>{ try{olMap.updateSize();fitView();}catch(e){} }, 1500);
 }
-// OpenLayers 만 https 로 로드한다(VWorld ol.js = OL 3.19.1). VWorld JS 지도
+// 표준 OpenLayers 3.19.1(cdnjs)을 https 로 로드한다. VWorld 배포판 ol.js 는 휠 확대 코드가
+// VWorld 전용 설정(map.options.basemapType, vw.ol3.ViewConfig)을 참조하도록 개조돼 있어
+// 순수 OpenLayers 지도에서는 휠 확대가 동작하지 않는다(오류로 중단). VWorld JS 지도
 // 라이브러리는 쓰지 않으므로 document.write·OSM 폴백 문제가 원천 발생하지 않는다.
 function loadScript(src){
   return new Promise((ok,no)=>{ const s=document.createElement("script");
@@ -165,7 +167,7 @@ let _built=false;
 async function bootstrap(){
   try{
     if(typeof ol==="undefined")
-      await loadScript("https://map.vworld.kr/js/map/OpenLayers-3.10.1/ol.js");
+      await loadScript("https://cdnjs.cloudflare.com/ajax/libs/openlayers/3.19.1/ol.js");
   }catch(e){
     document.getElementById("map").innerHTML=
       '<div class="nodata">지도 엔진(OpenLayers) 로드 실패<br>('+e+')</div>'; return;
