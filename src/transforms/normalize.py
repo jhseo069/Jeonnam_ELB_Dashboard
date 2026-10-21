@@ -107,6 +107,9 @@ JEONNAM_COUNTIES = ("담양군", "곡성군", "구례군", "고흥군", "보성�
                     "완도군", "진도군", "신안군")
 # 허가대장은 '전남 영광 백수읍'처럼 시/군 접미사를 생략하기도 한다
 JEONNAM_SHORT = tuple(name[:-1] for name in JEONNAM_CITIES + JEONNAM_COUNTIES)
+# 전남·광주 외에 요청으로 추가한 대상 시군구(2026-10-21: 전북 고창군). 시군구명 → 지역 표기.
+EXTRA_TARGETS = {"고창군": "전북"}
+EXTRA_TARGET_RE = re.compile(r"고창군|(?:전북|전라북도|전북특별자치도)\s*고창")
 
 
 def split_location_change(location: str) -> tuple[str, str]:
@@ -134,6 +137,10 @@ def classify_region(location: str) -> tuple[str, str, str]:
     if not location:
         return "확인필요", "", "자료없음"
     text = re.sub(r"\s+", " ", location)
+
+    # 추가 대상(전북 고창군)은 아래 '타 시·도 제외'보다 먼저 판정한다
+    if EXTRA_TARGET_RE.search(text):
+        return EXTRA_TARGETS["고창군"], "고창군", "확정"
 
     # 타 광역시·도가 먼저 나오면 대상 지역이 아니다. '경기도 광주시'가 '광주'에
     # 걸려 광주광역시로 오인되는 것을 막는다(경기 광주시, 강원 등).

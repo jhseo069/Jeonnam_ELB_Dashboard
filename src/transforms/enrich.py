@@ -53,6 +53,32 @@ def project_sigungus(project: dict) -> set[str]:
     return out
 
 
+def ledger_wind_kind(row: dict) -> str:
+    """허가대장 풍력 행의 해상/육상 판정. 판단 근거가 없으면 빈 문자열.
+
+    같은 회사가 한 군에 육상·해상 풍력을 함께 가진 경우(동촌풍력발전: 고창 상하면
+    용정리 1626번지 육상 24.75MW / 용정리 앞 공유수면 해상 69.3MW) 행을 갈라야
+    최초허가일·사업 수가 섞이지 않는다.
+    """
+    src = str(row.get("발전원_표준") or "")
+    if src == "해상풍력":
+        return "해상"
+    if src == "육상풍력":
+        return "육상"
+    if src != "풍력_구분미상":
+        return ""
+    loc = " ".join(str(row.get(k) or "") for k in ("위치", "위치_추가행"))
+    if re.search(r"공유\s*수면|해상|해역", loc) or str(row.get("좌표_원문") or "").strip():
+        return "해상"
+    if re.search(r"\d+\s*(번지|필지)|산\s*\d+", loc):
+        return "육상"
+    return ""
+
+
+def project_wind_kind(project: dict) -> str:
+    return {"해상풍력": "해상", "육상풍력": "육상"}.get(str(project.get("발전원") or ""), "")
+
+
 def _family(source) -> str:
     """발전원 계열: 태양광 / 풍력(육상·해상·미상). 그 외·미상은 빈 문자열."""
     s = str(source or "")
@@ -93,6 +119,10 @@ def match_ledger_rows(project: dict, ledger_rows: list[dict]) -> tuple[list[dict
         # 염산 풍력 + 백수 태양광) 다른 발전원 사업의 허가일이 섞이지 않게 한다.
         if _family(project.get("발전원")) and _family(row.get("발전원_표준")) \
                 and _family(project.get("발전원")) != _family(row.get("발전원_표준")):
+            continue
+        # 풍력 안에서도 해상/육상이 갈리면 다른 사업이다
+        if project_wind_kind(project) and ledger_wind_kind(row) \
+                and project_wind_kind(project) != ledger_wind_kind(row):
             continue
         ledger_key = _name_tokens(row.get("사업자", ""))
         if not ledger_key:

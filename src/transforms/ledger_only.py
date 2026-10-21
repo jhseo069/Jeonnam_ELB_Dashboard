@@ -16,8 +16,9 @@ import re
 from rapidfuzz import fuzz
 
 from .dedup import name_core
-from .enrich import project_sigungus
+from .enrich import ledger_wind_kind, project_sigungus, project_wind_kind
 from .merge import make_project_id, sequence_signature
+from .normalize import EXTRA_TARGETS
 
 COMPANY_MATCH = 80
 
@@ -75,8 +76,9 @@ def build_ledger_only_projects(master: list[dict], ledger: list[dict]) -> list[d
         for sigungu in project_sigungus(project) or {""}:
             for alias in str(project.get("발전소명_원문") or "").split(" | "):
                 if alias:
-                    matched_keys.add((name_core(alias), sigungu))
-            matched_keys.add((name_core(str(project.get("사업주체") or "")), sigungu))
+                    matched_keys.add((name_core(alias), sigungu, project_wind_kind(project)))
+            matched_keys.add((name_core(str(project.get("사업주체") or "")), sigungu,
+                              project_wind_kind(project)))
             # 과거 사업주체(최초허가 당시 상호)는 용량이 맞을 때만 같은 사업으로 본다
             # (enrich.match_ledger_rows 와 같은 조건 — 같은 회사의 다른 사업을 지우지 않게).
             for past in str(project.get("사업주체_이력") or "").split(" | "):
@@ -87,8 +89,9 @@ def build_ledger_only_projects(master: list[dict], ledger: list[dict]) -> list[d
                     if alias:
                         alias_caps.append((_compact(alias), sigungu, cap))
 
-    def already_covered(company_core: str, sigungu: str, rows: list[dict]) -> bool:
-        if any(mk[1] == sigungu and mk[0] and
+    def already_covered(company_core: str, sigungu: str, rows: list[dict], kind: str = "") -> bool:
+        # 해상/육상이 갈리면(한쪽이라도 판정 불가면 같은 것으로 본다) 다른 사업
+        if any(mk[1] == sigungu and mk[0] and (not mk[2] or not kind or mk[2] == kind) and
                fuzz.ratio(mk[0], company_core) >= COMPANY_MATCH for mk in matched_keys):
             return True
         for core, sgg, cap in past_keys:
@@ -109,7 +112,7 @@ def build_ledger_only_projects(master: list[dict], ledger: list[dict]) -> list[d
         return False
 
     # 사업자×시군구로 허가대장 행 묶기
-    groups: dict[tuple[str, str], list[dict]] = {}
+    groups: dict[tuple[str, str, str], list[dict]] = {}
     for row in ledger:
         source = row.get("발전원_표준")
         if source not in ("태양광", "육상풍력", "해상풍력", "풍력_구분미상"):
@@ -118,7 +121,33 @@ def build_ledger_only_projects(master: list[dict], ledger: list[dict]) -> list[d
         sigungu = row.get("시군구") or ""
         if not company_core or not sigungu:
             continue
-        groups.setdefault((company_core, sigungu), []).append(row)
+        groups.setdefault((company_core, sigungu, ""), []).append(row)
+
+    # 한 회사가 같은 시군구에 해상·육상 풍력 행을 모두 가진 경우에만 둘로 가른다
+    # (동촌풍력발전 고창: 육상 24.75MW / 해상 69.3MW). 판정 불가 행은 용량이 같은
+    # 쪽에 붙인다. 그 외 묶음은 손대지 않는다(태양광·판정불가 행을 갈라 놓으면
+    # 이미 정리된 중복이 다시 생긴다).
+    for key in list(groups):
+        rows = groups[key]
+        kinds = {ledger_wind_kind(r) for r in rows}
+        # 원동력에 해상/육상이 명시된 행이 있어야 가른다. 전부 '풍력'(구분미상)이면
+        # 위치 문구만으로는 용량·위치가 바뀐 동일 사업(대명지이씨 염산: 봉남리 1100번지
+        # 36MW → 공유수면 38.4MW)을 둘로 오판할 수 있다.
+        explicit = any(r.get("발전원_표준") in ("해상풍력", "육상풍력") for r in rows)
+        if not explicit or not {"해상", "육상"} <= kinds:
+            continue
+        split: dict[str, list[dict]] = {"해상": [], "육상": []}
+        unknown = []
+        for r in rows:
+            k = ledger_wind_kind(r)
+            (split[k] if k in split else unknown).append(r)
+        for r in unknown:
+            caps = _caps([r])
+            target = next((k for k in split if caps & _caps(split[k])), "육상")
+            split[target].append(r)
+        del groups[key]
+        for k, part in split.items():
+            groups[(key[0], key[1], k)] = part
 
     # 허가대장 PDF 줄바꿈으로 상호가 잘려 같은 회사가 두 묶음이 된 경우
     # ('이촌태양광발'/'이촌태양광발 전', '에이치원에너'/'에이치원에너 지') 합친다.
@@ -132,6 +161,8 @@ def build_ledger_only_projects(master: list[dict], ledger: list[dict]) -> list[d
         for long_ in list(groups):
             if long_ == short or long_[1] != short[1] or not raw(long_).startswith(raw(short)):
                 continue
+            if long_[2] and short[2] and long_[2] != short[2]:
+                continue
             # '안좌스마트팜앤쏠라시티' ⊂ '…쏠라시티2' 처럼 뒤에 순번이 붙으면 별개 사업
             if sequence_signature(raw(long_)) != sequence_signature(raw(short)):
                 continue
@@ -140,8 +171,8 @@ def build_ledger_only_projects(master: list[dict], ledger: list[dict]) -> list[d
                 break
 
     new_projects = []
-    for (company_core, sigungu), rows in groups.items():
-        if already_covered(company_core, sigungu, rows):
+    for (company_core, sigungu, kind), rows in groups.items():
+        if already_covered(company_core, sigungu, rows, kind):
             continue
 
         representative = rows[0]
@@ -153,7 +184,8 @@ def build_ledger_only_projects(master: list[dict], ledger: list[dict]) -> list[d
                   "육상풍력" if "육상풍력" in sources else
                   "태양광" if "태양광" in sources else "풍력_구분미상")
 
-        region = "광주" if sigungu in ("동구", "서구", "남구", "북구", "광산구") else "전남"
+        region = ("광주" if sigungu in ("동구", "서구", "남구", "북구", "광산구")
+                  else EXTRA_TARGETS.get(sigungu, "전남"))
         coord_raw = " | ".join(r.get("좌표_원문", "") for r in rows if r.get("좌표_원문"))
 
         new_projects.append({

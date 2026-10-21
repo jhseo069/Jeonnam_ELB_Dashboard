@@ -1,4 +1,4 @@
-"""전남·광주 발전사업 현황 — Streamlit 대시보드.
+"""전남·광주·고창 발전사업 현황 — Streamlit 대시보드(전북 고창군 포함).
 
 필터·KPI·표는 Streamlit 네이티브, 지도는 VWorld HTML 을 런타임에 조립해 임베드한다.
 VWorld/Google 키는 st.secrets 또는 .env 에서 읽어 코드·저장소에 남기지 않는다.
@@ -27,7 +27,7 @@ COLORS = {"태양광": "#c98a2b", "육상풍력": "#4a7c59", "해상풍력": "#3
           "풍력_구분미상": "#8a9199", "복합_검수필요": "#8a9199"}
 SRC_ORDER = ["태양광", "육상풍력", "해상풍력", "풍력_구분미상", "복합_검수필요"]
 
-st.set_page_config(page_title="전남·광주 발전사업 현황", layout="wide",
+st.set_page_config(page_title="전남·광주·고창 발전사업 현황", layout="wide",
                    initial_sidebar_state="expanded")
 
 
@@ -127,7 +127,7 @@ fdf = df[mask].copy()
 # ── 헤더 ────────────────────────────────────────────────────────────
 left, right = st.columns([3, 2])
 with left:
-    st.markdown("#### 전남·광주 발전사업 현황")
+    st.markdown("#### 전남·광주·고창 발전사업 현황")
     st.caption("태양광 · 육상풍력 · 해상풍력")
 with right:
     st.caption(f"데이터 기준일 {meta.get('기준일', '—')} · "

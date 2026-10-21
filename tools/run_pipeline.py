@@ -31,13 +31,13 @@ from extractors.grid_contract import (extract_grid_condition,             # noqa
 from transforms.dedup import apply_merges, find_duplicate_groups, name_core  # noqa: E402
 from transforms.enrich import enrich_with_ledger                          # noqa: E402
 from transforms.merge import build_projects                               # noqa: E402
-from transforms.normalize import (classify_region, normalize_capacity,    # noqa: E402
+from transforms.normalize import (EXTRA_TARGETS, classify_region, normalize_capacity,    # noqa: E402
                                   normalize_company, normalize_date,
                                   normalize_energy_source)
 from transforms.wind_type import resolve as resolve_wind                  # noqa: E402
 
 TARGET_SOURCES = ("태양광", "육상풍력", "해상풍력", "풍력_구분미상", "복합_검수필요")
-REGION_PATTERN = "전남|전라남도|광주|전남광주통합특별시"
+REGION_PATTERN = "전남|전라남도|광주|전남광주통합특별시|고창"  # 고창: 전북 추가 대상
 
 
 def read_csv(path: Path) -> pd.DataFrame:
@@ -45,6 +45,37 @@ def read_csv(path: Path) -> pd.DataFrame:
         return pd.DataFrame()
     frame = pd.read_csv(path, encoding="utf-8-sig")
     return frame.where(pd.notna(frame), None)
+
+
+def load_target_ledger() -> pd.DataFrame:
+    """허가대장 대상 행: 전남·광주 선별분 + 추가 대상 지역(전북 고창군) 행.
+
+    전남·광주 선별분은 초기 구축 때 만든 파일을 그대로 쓰고(검증 완료), 추가 대상은
+    허가대장 전체에서 위치로 골라 덧붙인다.
+    """
+    base = read_csv(ROOT / "data/extracted/허가대장_전남광주_대상.csv")
+    full = read_csv(ROOT / "data/extracted/허가대장_전체.csv")
+    loc = (full["위치"].fillna("").astype(str) + " " + full["위치_추가행"].fillna("").astype(str))
+    extra = full[loc.map(lambda t: classify_region(t)[0] in EXTRA_TARGETS.values())].copy()
+    # 추가 대상 행은 해상 사업구역 좌표가 '위치' 칸에 들어 있고 좌표_원문이 비어 있다
+    # (고창 동촌풍력 '35-27-28.93(위도), 126-25-48.36(경도)'). 좌표 표기가 있으면 옮긴다.
+    from transforms.coordinates import parse_polygon
+    for i in extra.index:
+        if pd.isna(extra.at[i, "좌표_원문"]) and parse_polygon(loc[i]):
+            extra.at[i, "좌표_원문"] = loc[i]
+    return pd.concat([base, extra], ignore_index=True).drop_duplicates()
+
+
+def load_target_kpx() -> list[dict]:
+    """KPX 대상: 전남·광주 선별분 + 추가 대상 지역(전북 고창)."""
+    records = read_csv(ROOT / "data/interim/kpx_2026H1_전남광주_대상.csv").to_dict("records")
+    summary = json.loads((ROOT / "data/extracted/kpx_2026H1.json").read_text(encoding="utf-8"))["요약표"]
+    for row in summary:
+        text = " ".join(str(v) for v in row.values())
+        if row.get("지역") == "전북" and "고창" in text:
+            source = str(row.get("발전원") or "").replace(" ", "")
+            records.append({**row, "발전원_표준": source, "지역_표준": "전북"})
+    return records
 
 
 def load_agenda() -> pd.DataFrame:
@@ -166,7 +197,7 @@ def main() -> None:
     (ROOT / "data/interim").mkdir(parents=True, exist_ok=True)
     target.to_csv(ROOT / "data/interim/회의록_전남광주_통합.csv",
                   index=False, encoding="utf-8-sig")
-    print(f"[2] 전남·광주 안건 {len(target)}건")
+    print(f"[2] 대상지역(전남·광주·고창) 안건 {len(target)}건")
 
     projects = pd.DataFrame([asdict(p) for p in
                              build_projects(target.to_dict("records")).values()])
@@ -176,18 +207,18 @@ def main() -> None:
 
     # 지역 재확인: '경기도 광주시'처럼 타 광역이 '광주' 문자에 걸려든 건을 뺀다
     before = len(projects)
-    projects = projects[projects["지역"].isin(["전남", "광주"])]
+    projects = projects[projects["지역"].isin(["전남", "광주", *EXTRA_TARGETS.values()])]
     dropped = before - len(projects)
     print(f"[3] 사업 단위 {len(projects)}건 (대상 발전원, 타지역 {dropped}건 제외)")
 
-    ledger = normalize_ledger(read_csv(ROOT / "data/extracted/허가대장_전남광주_대상.csv"))
+    ledger = normalize_ledger(load_target_ledger())
     ledger.to_csv(ROOT / "data/interim/허가대장_전남광주_정규화.csv",
                   index=False, encoding="utf-8-sig")
     enriched = pd.DataFrame(enrich_with_ledger(projects.to_dict("records"),
                                                ledger.to_dict("records")))
     print(f"[4] 허가대장 병합 — 최초허가일 {enriched['최초발전사업허가일'].notna().sum()}건")
 
-    kpx = read_csv(ROOT / "data/interim/kpx_2026H1_전남광주_대상.csv").to_dict("records")
+    kpx = load_target_kpx()
     records = []
     for record in enriched.to_dict("records"):
         source, basis = resolve_wind(record, kpx)

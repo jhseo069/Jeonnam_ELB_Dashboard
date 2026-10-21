@@ -27,6 +27,9 @@ _MIN = r"[′'‘’´`]"
 _SEC = r"[″\"“”]"
 DMS_RE = re.compile(
     rf"(\d{{1,3}})\s*[°]\s*(\d{{1,2}})\s*{_MIN}?\s*(\d{{1,2}}(?:\s*\.\s*\d+)?)\s*{_SEC}?\s*([NSEW])?")
+# 하이픈 구분 DMS: 35-27-28.93173(위도), 126-25-48.36059(경도)  (전북 고창 허가대장 표기)
+# 날짜(2023-08-01)를 좌표로 오인하지 않게 도 값을 위도 33~35 / 경도 124~128 로 제한한다.
+DASH_DMS_RE = re.compile(r"(?<!\d)(3[3-5]|12[4-8])-(\d{1,2})-(\d{1,2}(?:\.\d+)?)(?![\d-])")
 # 십진수 쌍이 공백 없이 붙은 경우: 33.989167127.179396  (위도.6자리+경도)
 DECIMAL_PAIR_RE = re.compile(r"(3[3-5]\.\d{4,6})\s*(12[567]\.\d{4,6})")
 # '경도' 뒤에 오면 경도, '위도' 뒤에 오면 위도
@@ -76,6 +79,12 @@ def parse_polygon(text: str) -> list[tuple[float, float]]:
         deg, minute, sec, hemi = m.groups()
         dec = dms_to_decimal(deg, minute, sec.replace(" ", ""), hemi)
         tokens.append((m.start(), dec, hemi, int(deg)))
+    for m in DASH_DMS_RE.finditer(text):
+        deg, minute, sec = m.groups()
+        # 도 값만으로 위·경도가 확실히 갈린다(3x=위도, 12x=경도). 라벨 위치에 의존하지 않음
+        hemi = "N" if int(deg) < 40 else "E"
+        tokens.append((m.start(), dms_to_decimal(deg, minute, sec, None), hemi, int(deg)))
+    tokens.sort(key=lambda t: t[0])
 
     points: list[tuple[float, float]] = []
     pending_lat = pending_lon = None
