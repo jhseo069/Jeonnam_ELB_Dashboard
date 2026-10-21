@@ -215,7 +215,7 @@ if show_subst and subst_data.get("substations"):
             "차단기 22.9kV": f"{b['kv22_free']:.0f}/{b['kv22_total']:.0f}" if b else "—",
             "차단기 154kV": f"{b['kv154_free']:.0f}/{b['kv154_total']:.0f}" if b else "—",
             "가압 예정": (s.get("plan") or {}).get("가압", ""),
-            "지도": "표시" if s.get("lat") is not None else "위치 미정",
+            "지도": ("표시(면 단위 대표위치)" if s.get("approx") else "표시") if s.get("lat") is not None else "위치 미정",
         })
     st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
     st.caption(f"출처 한전ON 공개 계통정보 · 수집 {subst_data.get('collected', '—')} · "

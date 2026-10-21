@@ -83,7 +83,7 @@ function renderLegend(){
   const present=SRC_ORDER.filter(s=>PLANTS.some(p=>p.src===s));
   document.getElementById("legend").innerHTML=present.map(s=>
     `<span class="li"><span class="sw" style="background:${COLORS[s]}"></span>${esc(s.replace("_구분미상","(미상)"))}</span>`).join("")+
-    (SUBST.some(s=>s.lat!=null)?`<span class="li"><span class="sw" style="background:#b23b3b;border-radius:1px;transform:rotate(45deg)"></span>변전소</span>`:"");
+    (SUBST.some(s=>s.lat!=null)?`<span class="li"><span class="sw" style="background:#2e7d4f;border-radius:1px;transform:rotate(45deg)"></span>변전소(초록 여유·빨강 없음·회색 건설/계획)</span>`:"");
 }
 function iconStyle(color){return new ol.style.Style({image:new ol.style.Circle({
   radius:6, fill:new ol.style.Fill({color}), stroke:new ol.style.Stroke({color:"#fff",width:2})})});}
@@ -91,11 +91,12 @@ function iconStyle(color){return new ol.style.Style({image:new ol.style.Circle({
 // 변전소 전체 여유(MW) = 접속기준용량 - 접수기준접속용량 (음수면 0, 초과분 별도 표시)
 function substFree(s){ const d=s.dist; if(!d||d.capa_kw==null||d.recv_kw==null) return null; return (d.capa_kw-d.recv_kw)/1000; }
 function substStyle(s){
-  const free=substFree(s), color=(free!=null&&free>0)?"#2e7d4f":"#b23b3b";
+  // 초록=여유 있음, 빨강=여유 없음, 회색=한전ON 자료 없음(건설·계획 중). 345kV는 크게, 위치 미확정은 점선 테두리
+  const free=substFree(s), color=free==null?"#7a838c":(free>0?"#2e7d4f":"#b23b3b"), big=s.kv==="345kV";
   return new ol.style.Style({
-    image:new ol.style.RegularShape({points:4, radius:9, angle:0, fill:new ol.style.Fill({color}),
-      stroke:new ol.style.Stroke({color:"#fff",width:2})}),
-    text:new ol.style.Text({text:s.name+(s.status!=="운영"?"("+(s.plan&&s.plan.가압?s.plan.가압+" 가압":s.status)+")":""), offsetY:-17, font:"600 11px sans-serif",
+    image:new ol.style.RegularShape({points:4, radius:big?12:9, angle:0, fill:new ol.style.Fill({color}),
+      stroke:new ol.style.Stroke({color:s.approx?"#1a1f24":"#fff",width:2,lineDash:s.approx?[3,3]:undefined})}),
+    text:new ol.style.Text({text:s.name+(s.status!=="운영"?"("+(s.plan&&s.plan.가압?s.plan.가압+" 가압":s.status)+")":"")+(s.approx?" · 위치 미확정":""), offsetY:big?-20:-17, font:"600 11px sans-serif",
       fill:new ol.style.Fill({color:"#1a1f24"}), stroke:new ol.style.Stroke({color:"#fff",width:3})})});
 }
 function mw(kw){ return kw==null?"—":(kw/1000).toFixed(1); }
@@ -110,7 +111,9 @@ function showSubstPopup(s){
     h+=`<div class="pop-row"><span class="k">변전소 전체 여유</span><span class="v sub-big ${free>0?"pos":"neg"}">${Math.max(0,free).toFixed(1)} MW</span></div>`+
       row("접속기준용량",mw(d.capa_kw)+" MW")+row("접수기준 접속용량",mw(d.recv_kw)+" MW")+
       row("접속계획 반영 접속용량",mw(d.plan_kw)+" MW")+(over>0?row("초과(과부하)",`<span class="neg">${over.toFixed(1)} MW</span>`):"");
-  } else h+=row("배전 접속 정보","한전ON 미제공(건설 중 등)");
+  } else h+=row("배전 접속 정보","한전ON 미제공(건설·계획 중)");
+  if(s.kv) h+=row("전압",esc(s.kv));
+  if(s.approx) h+=row("위치",`<span class="neg">부지 지번 미공개 · 면 단위 대표위치</span>`);
   const pl=s.plan;
   if(pl){
     h+=`<div class="sub-sec">건설 계획</div>`+row("가압 예정",`<b>${esc(pl.가압)}</b>`)+row("착공",esc(pl.착공))+

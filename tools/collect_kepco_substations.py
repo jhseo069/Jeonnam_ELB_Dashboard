@@ -112,12 +112,17 @@ def locate_only() -> None:
     data = json.loads(OUT.read_text(encoding="utf-8"))
     by_code = {s["code"]: s for s in subs}
     region_of = {s["code"]: r["name"] for r in cfg["regions"] for s in r["substations"]}
-    for s in data["substations"]:
-        c = by_code.get(s["code"], {})
-        s["region"] = region_of.get(s["code"], s.get("region"))
-        for k in ("address", "location_source", "lat", "lon", "plan"):
-            s[k] = c.get(k, s.get(k))
+    have = {s["code"]: s for s in data["substations"]}
+    ordered = []
+    for c, cs in by_code.items():          # config 순서 유지. 새로 추가된 변전소는 한전ON 값 없이 넣는다
+        s = have.get(c) or {"code": c, "emd": None, "dist": None, "lines": [],
+                            "trans154": {"yearly": []}, "breaker": None, "supply": {}}
+        s["name"], s["status"], s["region"] = cs["name"], cs["status"], region_of[c]
+        for k in ("address", "location_source", "lat", "lon", "plan", "kv", "approx"):
+            s[k] = cs.get(k)
+        ordered.append(s)
         print(f"{s['name']}: {s.get('lat')}, {s.get('lon')}  ({s.get('address') or '위치 미정'})")
+    data["substations"] = ordered
     OUT.write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding="utf-8")
 
 
@@ -192,6 +197,7 @@ def build_outputs(region: dict, meta: dict, subst: dict, lines: dict, year: int)
             "code": c, "name": s["name"], "status": s["status"], "region": region["name"],
             "address": s.get("address", ""), "location_source": s.get("location_source", ""),
             "lat": s.get("lat"), "lon": s.get("lon"), "plan": s.get("plan"),
+            "kv": s.get("kv"), "approx": s.get("approx"),
             "emd": t.get("EMD_NM") or b.get("EMD_NM"),
             "dist": d or None,
             "lines": my_lines,
