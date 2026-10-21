@@ -107,6 +107,10 @@ JEONNAM_COUNTIES = ("담양군", "곡성군", "구례군", "고흥군", "보성�
                     "완도군", "진도군", "신안군")
 # 허가대장은 '전남 영광 백수읍'처럼 시/군 접미사를 생략하기도 한다
 JEONNAM_SHORT = tuple(name[:-1] for name in JEONNAM_CITIES + JEONNAM_COUNTIES)
+# 원문이 시군구를 생략하고 읍면부터 적은 경우의 보완(원문 대조로 확인한 것만 등록).
+# 예: 제311차 '전남 조도면 맹골도리 36-2' — 조도면은 진도군에만 있다.
+TOWN_TO_SIGUNGU = {"조도면": "진도군"}
+
 # 전남·광주 외에 요청으로 추가한 대상 시군구(2026-10-21: 전북 고창군). 시군구명 → 지역 표기.
 EXTRA_TARGETS = {"고창군": "전북"}
 EXTRA_TARGET_RE = re.compile(r"고창군|(?:전북|전라북도|전북특별자치도)\s*고창")
@@ -157,6 +161,9 @@ def classify_region(location: str) -> tuple[str, str, str]:
     for name in JEONNAM_CITIES + JEONNAM_COUNTIES:
         if name in text:
             return "전남", name, "확정"
+    for town, county in TOWN_TO_SIGUNGU.items():
+        if town in text:
+            return "전남", county, "확정(읍면 보완)"
 
     if "전남" in text or "전라남도" in text or "전남광주통합특별시" in text:
         for short in JEONNAM_SHORT:
