@@ -83,28 +83,46 @@ function renderLegend(){
   const present=SRC_ORDER.filter(s=>PLANTS.some(p=>p.src===s));
   document.getElementById("legend").innerHTML=present.map(s=>
     `<span class="li"><span class="sw" style="background:${COLORS[s]}"></span>${esc(s.replace("_구분미상","(미상)"))}</span>`).join("")+
-    (SUBST.some(s=>s.lat!=null)?`<span class="li"><span class="sw" style="background:#2e7d4f;border-radius:1px;transform:rotate(45deg)"></span>변전소(초록 여유·빨강 없음·회색 건설/계획)</span>`:"");
+    (SUBST.some(s=>s.lat!=null)?`<span class="li">⚡ 변전소: <b style="color:#1f9d55">여유</b>·<b style="color:#e03131">없음</b>·<b style="color:#7a838c">건설/계획</b> · 배지 154/345kV(345는 큰 핀)</span>`:"");
 }
 function iconStyle(color){return new ol.style.Style({image:new ol.style.Circle({
   radius:6, fill:new ol.style.Fill({color}), stroke:new ol.style.Stroke({color:"#fff",width:2})})});}
 
 // 변전소 전체 여유(MW) = 접속기준용량 - 접수기준접속용량 (음수면 0, 초과분 별도 표시)
 function substFree(s){ const d=s.dist; if(!d||d.capa_kw==null||d.recv_kw==null) return null; return (d.capa_kw-d.recv_kw)/1000; }
+// 변전소 핀(번개 아이콘). 색: 초록=여유 있음, 빨강=여유 없음, 회색=한전ON 자료 없음(건설·계획 중).
+// 154kV=보통 핀 + '154' 흰 배지, 345kV=큰 핀·남색 테두리 + '345' 남색 배지. 위치 미확정은 점선 테두리.
+function substColor(s){ const f=substFree(s); return f==null?"#7a838c":(f>0?"#1f9d55":"#e03131"); }
+function substPinSvg(color, kv345, dashed){
+  const W=kv345?54:36, H=kv345?64:44, sc=kv345?1.45:1, rim=kv345?"#1c2b6b":"#ffffff", rw=kv345?3:2.5;
+  const badgeFill=kv345?"#1c2b6b":"#ffffff", badgeText=kv345?"#ffffff":color, label=kv345?"345":"154";
+  const dash=dashed?` stroke-dasharray="4 3"`:"";
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">`+
+    `<g transform="translate(${(W-28*sc)/2},${H-38*sc}) scale(${sc})">`+
+    `<path d="M14 37 C14 37 2 23 2 14 A12 12 0 0 1 26 14 C26 23 14 37 14 37 Z" fill="${color}" stroke="${rim}" stroke-width="${rw/sc}"${dash}/>`+
+    `<circle cx="14" cy="14" r="8.5" fill="#ffffff"/>`+
+    `<path d="M15.5 7.5 L10 15 H13.6 L12.5 20.5 L18 13 H14.4 Z" fill="${color}"/></g>`+
+    `<rect x="${W-(kv345?27:21)}" y="0.75" width="${kv345?26:20}" height="${kv345?13:11}" rx="${kv345?6.5:5.5}" fill="${badgeFill}" stroke="${kv345?"#ffffff":color}" stroke-width="1.2"/>`+
+    `<text x="${W-(kv345?14:11)}" y="${kv345?10.6:9.3}" font-family="sans-serif" font-size="${kv345?10:8.5}" font-weight="700" text-anchor="middle" fill="${badgeText}">${label}</text></svg>`;
+}
 function substStyle(s){
-  // 초록=여유 있음, 빨강=여유 없음, 회색=한전ON 자료 없음(건설·계획 중). 345kV는 크게, 위치 미확정은 점선 테두리
-  const free=substFree(s), color=free==null?"#7a838c":(free>0?"#2e7d4f":"#b23b3b"), big=s.kv==="345kV";
+  const color=substColor(s), kv345=s.kv==="345kV", W=kv345?54:36, H=kv345?64:44;
+  const sched=s.status!=="운영"?" · "+(s.plan&&s.plan.가압?s.plan.가압+" 가압":s.status):"";
   return new ol.style.Style({
-    image:new ol.style.RegularShape({points:4, radius:big?12:9, angle:0, fill:new ol.style.Fill({color}),
-      stroke:new ol.style.Stroke({color:s.approx?"#1a1f24":"#fff",width:2,lineDash:s.approx?[3,3]:undefined})}),
-    text:new ol.style.Text({text:s.name+(s.status!=="운영"?"("+(s.plan&&s.plan.가압?s.plan.가압+" 가압":s.status)+")":"")+(s.approx?" · 위치 미확정":""), offsetY:big?-20:-17, font:"600 11px sans-serif",
-      fill:new ol.style.Fill({color:"#1a1f24"}), stroke:new ol.style.Stroke({color:"#fff",width:3})})});
+    zIndex:1000,
+    image:new ol.style.Icon({src:"data:image/svg+xml;charset=utf-8,"+encodeURIComponent(substPinSvg(color,kv345,s.approx)),
+      imgSize:[W,H], anchor:[0.5,1], anchorXUnits:"fraction", anchorYUnits:"fraction"}),
+    text:new ol.style.Text({text:s.name+sched+(s.approx?" · 위치 미확정":""), textAlign:"left",
+      offsetX:kv345?17:13, offsetY:-(H/2),
+      font:`700 ${kv345?13:12}px sans-serif`, fill:new ol.style.Fill({color:color==="#7a838c"?"#3d454d":color}),
+      stroke:new ol.style.Stroke({color:"#fff",width:3.5})})});
 }
 function mw(kw){ return kw==null?"—":(kw/1000).toFixed(1); }
 function showSubstPopup(s){
   const el=document.getElementById("popup"); el.classList.add("wide");
   const row=(k,v)=>`<div class="pop-row"><span class="k">${k}</span><span class="v">${v}</span></div>`;
   const d=s.dist, free=substFree(s);
-  let h=`<div class="pop-head"><div class="pop-title">${esc(s.name)} 변전소${s.status!=="운영"?` <span style="color:#889098;font-weight:500">(${esc(s.status)})</span>`:""}</div>`+
+  let h=`<div class="pop-head"><div class="pop-title">${esc(s.name)}${/S\/S/.test(s.name)?"":" 변전소"}${s.status!=="운영"?` <span style="color:#889098;font-weight:500">(${esc(s.status)})</span>`:""}</div>`+
     `<button class="pop-close" onclick="hidePopup()">&times;</button></div><div class="pop-body pop-scroll">`;
   if(d){
     const over=free<0?-free:0;
