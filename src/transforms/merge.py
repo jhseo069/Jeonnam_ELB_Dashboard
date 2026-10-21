@@ -103,6 +103,7 @@ class Project:
     최근전기위원회회차: int | None = None
     최근심의일: str | None = None
     최근안건유형: str = ""
+    최근심의결과: str = ""        # 허가/조건부 허가/심의 보류/불허가 … (안건유형과 별개)
     데이터상태: str = "잠정"
     중복의심: str = ""
     대표출처: str = ""
@@ -240,6 +241,7 @@ def build_projects(agenda_records: list[dict]) -> dict[str, Project]:
         if is_newer:
             project.최근전기위원회회차 = round_no
             project.최근안건유형 = record.get("안건유형", "")
+            project.최근심의결과 = str(record.get("심의결과") or "").strip()
             for src_field, dst_field in (("사업주체", "사업주체"), ("최대주주", "최대주주"),
                                          ("발전소위치", "허가위치_원문")):
                 value = (record.get(src_field) or "").strip()

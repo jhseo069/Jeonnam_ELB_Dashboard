@@ -59,6 +59,7 @@ def build_history(hist: pd.DataFrame) -> dict[str, list[dict]]:
         out.setdefault(str(pid), []).append({
             "round": int(row["전기위원회회차"]) if _f(row.get("전기위원회회차")) is not None else None,
             "type": _s(row.get("안건유형")),
+            "result": _s(row.get("심의결과")),
             "agenda": _s(row.get("안건명")),
             "owner": _s(row.get("최대주주")),
             "transferor": _s(row.get("양도인")),
@@ -107,6 +108,7 @@ def main() -> None:
             # 허가대장전용 등 회차 없는 사업은 옛 data.json 관례대로 "" (숫자면 float).
             "round": _f(r.get("최근전기위원회회차")) if _f(r.get("최근전기위원회회차")) is not None else "",
             "agendaType": _s(r.get("최근안건유형")),
+            "result": _s(r.get("최근심의결과")),
             "gridCond": _s(r.get("계통보강조건")),
             # 지도 표시용. 옛 data.json 관례대로 소수 3자리로 반올림(약 100m).
             "lat": _round3(r.get("위도")),

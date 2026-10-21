@@ -94,6 +94,14 @@ operator_q = st.sidebar.text_input("사업주체 검색", "")
 status_opts = sorted(x for x in df["agendaType"].dropna().unique() if x)
 status_sel = st.sidebar.selectbox("최근 안건유형", ["전체"] + status_opts)
 
+# 심의결과: 안건유형(제목 종류)과 별개로 회의록 결과 제목 기준(허가/조건부 허가/심의 보류 …)
+RESULT_ORDER = ["허가", "조건부 허가", "심의 보류", "심의 연기", "불허가", "허가 취소",
+                "인가", "조건부 인가", "불인가", "승인", "조건부 승인", "반려", "각하", "인가 철회"]
+present_results = set(df.get("result", pd.Series(dtype=str)).fillna("")) - {""}
+result_opts = ([r for r in RESULT_ORDER if r in present_results]
+               + sorted(present_results - set(RESULT_ORDER)))
+result_sel = st.sidebar.selectbox("최근 심의결과", ["전체"] + result_opts)
+
 basemap = st.sidebar.selectbox(
     "배경지도",
     ["위성지도 (지명 표시)", "위성지도 (사진만)", "일반지도", "일반지도 (회색)"])
@@ -121,6 +129,8 @@ if operator_q.strip():
     mask &= df["operator"].fillna("").str.contains(operator_q.strip())
 if status_sel != "전체":
     mask &= df["agendaType"] == status_sel
+if result_sel != "전체":
+    mask &= df["result"] == result_sel
 fdf = df[mask].copy()
 
 
@@ -152,7 +162,7 @@ if not VWORLD_KEY:
                "VWORLD_API_KEY 를 입력하세요. 아래 표는 정상 동작합니다.")
 else:
     map_cols = ["id", "name", "src", "region", "sgg", "operator",
-                "mw", "firstPermit", "round", "lat", "lon"]
+                "mw", "firstPermit", "round", "result", "lat", "lon"]
     slim = fdf[[c for c in map_cols if c in fdf.columns]]
     # pandas to_json 이 NaN→null 로 올바르게 직렬화한다. json.dumps 는 NaN 을
     # 그대로 내보내 브라우저에서 좌표가 NaN 이 되고 마커 생성이 실패한다.
@@ -180,10 +190,10 @@ sdf["최근심의"] = pd.to_numeric(sdf["round"], errors="coerce").map(
 show = sdf.rename(columns={
     "name": "발전소명", "src": "발전원", "region": "지역", "sgg": "시군구",
     "operator": "사업주체", "owner": "최대주주", "mw": "설비용량(MW)",
-    "cost": "총사업비(억원)", "firstPermit": "최초허가일", "agendaType": "최근안건유형",
+    "cost": "총사업비(억원)", "firstPermit": "최초허가일", "agendaType": "최근안건유형", "result": "심의결과",
     "status": "데이터상태", "loc": "허가위치",
 })
-cols = ["발전소명", "발전원", "지역", "시군구", "최근심의", "최근안건유형", "사업주체",
+cols = ["발전소명", "발전원", "지역", "시군구", "최근심의", "최근안건유형", "심의결과", "사업주체",
         "최대주주", "설비용량(MW)", "총사업비(억원)", "최초허가일", "데이터상태", "허가위치"]
 st.dataframe(show[[c for c in cols if c in show.columns]],
              use_container_width=True, hide_index=True, height=380)

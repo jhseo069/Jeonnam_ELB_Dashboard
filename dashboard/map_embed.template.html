@@ -90,7 +90,7 @@ function showPopup(p){
     `<div class="pop-row"><span class="k">발전원</span><span class="v">${tag(p.src)}</span></div>`+
     row("지역",`${esc(p.region)} ${esc(p.sgg)}`)+row("설비용량",fmtMW(p.mw))+
     row("사업주체",esc(p.operator||"—"))+row("최초허가",esc(p.firstPermit||"—"))+
-    row("최근 심의",p.round?`제${esc(p.round)}차`:"")+`</div>`;
+    row("최근 심의",p.round?`제${esc(p.round)}차`+(p.result?` · ${esc(p.result)}`:""):"")+`</div>`;
   el.hidden=false;
   if(p.lat!=null&&isFinite(p.lat)&&overlay) overlay.setPosition(ol.proj.fromLonLat([p.lon,p.lat]));
 }

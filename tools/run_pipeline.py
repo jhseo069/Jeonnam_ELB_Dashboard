@@ -133,6 +133,7 @@ def build_permit_history(agenda: pd.DataFrame, projects: pd.DataFrame) -> pd.Dat
             "전기위원회회차": record.get("회차"),
             "안건명": record.get("안건명"),
             "안건유형": record.get("안건유형"),
+            "심의결과": record.get("심의결과"),
             "사업주체": record.get("사업주체"),
             "최대주주": record.get("최대주주"),
             "양도인": record.get("양도인"),

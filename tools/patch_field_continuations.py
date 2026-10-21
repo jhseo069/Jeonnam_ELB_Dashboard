@@ -1,4 +1,4 @@
-r"""추출 CSV의 '줄바꿈으로 잘린 칸 값'을 원문에서 다시 읽어 보완한다.
+r"""추출 CSV의 '줄바꿈으로 잘린 칸 값'과 '심의결과'를 원문에서 다시 읽어 보완한다.
 
 회의록 표기 예:
     ㅇ 발전소 위치 : 전남 신안군 하의면 후광3리 산50번지 일원
@@ -52,7 +52,11 @@ def main() -> None:
     total = 0
     for csv in sorted(EXTRACTED.glob("회의록_안건_*.csv")):
         df = pd.read_csv(csv, encoding="utf-8-sig")
+        if "심의결과" not in df.columns:
+            df["심의결과"] = ""
+        df["심의결과"] = df["심의결과"].fillna("").astype(str)
         changed = 0
+        results = 0
         for (doc, method), rows in df.groupby(["출처문서명", "추출방식"]):
             path = find_source(str(doc))
             if path is None:
@@ -68,6 +72,10 @@ def main() -> None:
                 item = fresh.get(_norm(df.at[idx, "안건명"]))
                 if item is None:
                     continue
+                # 회의록 결과 제목 아래 위치로 정한 심의결과(조건부 허가/심의 보류 …)
+                if item.심의결과 and df.at[idx, "심의결과"] != item.심의결과:
+                    df.at[idx, "심의결과"] = item.심의결과
+                    results += 1
                 for field in FIELDS:
                     old, new = df.at[idx, field], getattr(item, field)
                     if pd.isna(old) or not new:
@@ -78,9 +86,11 @@ def main() -> None:
                         changed += 1
                         print(f"  [{csv.stem[-4:]}] {df.at[idx, '회차']}차 "
                               f"{str(df.at[idx, '안건명'])[:26]} | {field}: … {str(new)[len(str(old)):][:60]}")
-        if changed:
+        if changed or results:
             df.to_csv(csv, index=False, encoding="utf-8-sig")
-        print(f"{csv.name}: {changed}칸 보완")
+        filled = (df["심의결과"] != "").sum()
+        print(f"{csv.name}: 이어진 줄 {changed}칸 보완 / 심의결과 {results}건 갱신 "
+              f"(결과 확인 {filled}/{len(df)}행)")
         total += changed
     print(f"총 {total}칸 보완")
 

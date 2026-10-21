@@ -22,6 +22,24 @@ from dataclasses import dataclass, asdict, field
 import pdfplumber
 
 AGENDA_HEAD_RE = re.compile(r"^\s*(\d{1,2})\.\s*(.+?\(안\))\s*$")
+# 결과 제목: '4. 조건부 허가(5건)', '심의 보류(12건)', '허가기준 충족(4)', '불허가(7건)'
+SECTION_RE = re.compile(r"^\s*(?:[ⅠⅡⅢⅣⅤⅥⅦⅧⅨⅩ\d]+\s*\.?\s*)?([가-힣·\s]{2,16}?)\s*\(\s*\d+\s*건?\s*\)\s*$")
+RESULT_LABELS = {
+    "허가기준충족": "허가", "변경허가기준충족": "허가", "허가": "허가",
+    "연계점변경충족": "허가", "계통연계점변경기준충족": "허가",
+    "인가기준충족": "인가", "인가": "인가",
+    "조건부허가": "조건부 허가", "조건부허가충족": "조건부 허가",
+    "조건부인가": "조건부 인가", "조건부인가기준충족": "조건부 인가",
+    "승인": "승인", "조건부승인": "조건부 승인",
+    "심의보류": "심의 보류", "허가심의보류": "심의 보류", "심의연기": "심의 연기",
+    "불허가": "불허가", "허가기준미충족불허가": "불허가", "연계점변경불허": "불허가",
+    "불인가": "불인가", "인가철회": "인가 철회",
+    "허가취소": "허가 취소", "취소": "허가 취소",
+    "반려": "반려", "변경신청반려취소": "반려", "허가신청각하": "각하",
+    "과징금처분": "과징금", "과징금부과": "과징금",
+}
+# 결과가 아닌 큰 묶음 제목: 만나면 결과를 비운다
+SECTION_RESET = {"심의안건", "보고안건", "상정안건", "의결안건", "토의안건", "상정·심의안건", "의결"}
 ARROW_RE = re.compile(r"^(?:→|➔|⇒|->|-\+|-»|=>|—>|–>)\s*")
 FIELD_RE = re.compile(r"^\s*[ㅇoO○●·▫0]?\s*([^:：]{2,14})\s*[:：]\s*(.*)$")
 
@@ -73,6 +91,9 @@ class AgendaItem:
     출처페이지: int = 0
     추출방식: str = "텍스트"
     기타필드: dict = field(default_factory=dict)
+    # 회의록 결과 제목('조건부 허가(2건)', '심의 보류(12건)' …) 아래에 놓인 안건의 심의 결과.
+    # 안건유형은 제목 종류('…허가(안)'→신규허가)라 보류·불허가여도 '신규허가'로 남는다.
+    심의결과: str = ""
 
 
 def is_two_up_page(page) -> bool:
@@ -144,6 +165,7 @@ def _parse_lines(lines, document_name: str, round_no: int | None,
     current: AgendaItem | None = None
     last_section = None
     last_field: str | None = None      # 줄바꿈으로 이어지는 값을 붙일 직전 칸
+    current_result = ""                # 직전 결과 제목(조건부 허가 / 심의 보류 …)
 
     for line, section, page_no in lines:
         if last_section is not None and section != last_section:
@@ -151,6 +173,16 @@ def _parse_lines(lines, document_name: str, round_no: int | None,
                 items.append(current)
                 current = None
         last_section = section
+
+        section = SECTION_RE.match(line)
+        if section:
+            label = re.sub(r"\s+", "", section.group(1))
+            if label in RESULT_LABELS or label in SECTION_RESET:
+                if current:
+                    items.append(current)
+                    current = None
+                current_result = RESULT_LABELS.get(label, "")
+                continue
 
         head = AGENDA_HEAD_RE.match(line)
         if head:
@@ -160,7 +192,8 @@ def _parse_lines(lines, document_name: str, round_no: int | None,
             current = AgendaItem(
                 회차=round_no, 안건번호=head.group(1), 안건명=title,
                 안건유형=classify_agenda_type(title),
-                출처문서명=document_name, 출처페이지=page_no, 추출방식=추출방식)
+                출처문서명=document_name, 출처페이지=page_no, 추출방식=추출방식,
+                심의결과=current_result)
             last_field = None
             continue
 
