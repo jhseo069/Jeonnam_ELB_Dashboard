@@ -214,11 +214,12 @@ if show_subst and subst_data.get("substations"):
             "송전망 154kV 여유": _trans(s),
             "차단기 22.9kV": f"{b['kv22_free']:.0f}/{b['kv22_total']:.0f}" if b else "—",
             "차단기 154kV": f"{b['kv154_free']:.0f}/{b['kv154_total']:.0f}" if b else "—",
+            "가압 예정": (s.get("plan") or {}).get("가압", ""),
             "지도": "표시" if s.get("lat") is not None else "위치 미정",
         })
     st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
     st.caption(f"출처 한전ON 공개 계통정보 · 수집 {subst_data.get('collected', '—')} · "
-               "접속 가능 여부를 확정하는 자료가 아닌 참고자료")
+               "접속 가능 여부를 확정하는 자료가 아닌 참고자료 · 건설 중 변전소 일정·위치는 한전 송변전 건설 정보공개 기준")
 
 st.markdown("##### 발전소 목록")
 # 정렬: 값 없는 행(허가대장전용 등 회차·허가일 없음)은 항상 뒤로

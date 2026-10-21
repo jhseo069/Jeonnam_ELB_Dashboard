@@ -115,7 +115,7 @@ def locate_only() -> None:
     for s in data["substations"]:
         c = by_code.get(s["code"], {})
         s["region"] = region_of.get(s["code"], s.get("region"))
-        for k in ("address", "location_source", "lat", "lon"):
+        for k in ("address", "location_source", "lat", "lon", "plan"):
             s[k] = c.get(k, s.get(k))
         print(f"{s['name']}: {s.get('lat')}, {s.get('lon')}  ({s.get('address') or '위치 미정'})")
     OUT.write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding="utf-8")
@@ -191,7 +191,7 @@ def build_outputs(region: dict, meta: dict, subst: dict, lines: dict, year: int)
         out.append({
             "code": c, "name": s["name"], "status": s["status"], "region": region["name"],
             "address": s.get("address", ""), "location_source": s.get("location_source", ""),
-            "lat": s.get("lat"), "lon": s.get("lon"),
+            "lat": s.get("lat"), "lon": s.get("lon"), "plan": s.get("plan"),
             "emd": t.get("EMD_NM") or b.get("EMD_NM"),
             "dist": d or None,
             "lines": my_lines,

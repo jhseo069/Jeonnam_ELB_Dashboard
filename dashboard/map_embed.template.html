@@ -95,7 +95,7 @@ function substStyle(s){
   return new ol.style.Style({
     image:new ol.style.RegularShape({points:4, radius:9, angle:0, fill:new ol.style.Fill({color}),
       stroke:new ol.style.Stroke({color:"#fff",width:2})}),
-    text:new ol.style.Text({text:s.name+(s.status!=="운영"?"("+s.status+")":""), offsetY:-17, font:"600 11px sans-serif",
+    text:new ol.style.Text({text:s.name+(s.status!=="운영"?"("+(s.plan&&s.plan.가압?s.plan.가압+" 가압":s.status)+")":""), offsetY:-17, font:"600 11px sans-serif",
       fill:new ol.style.Fill({color:"#1a1f24"}), stroke:new ol.style.Stroke({color:"#fff",width:3})})});
 }
 function mw(kw){ return kw==null?"—":(kw/1000).toFixed(1); }
@@ -111,6 +111,11 @@ function showSubstPopup(s){
       row("접속기준용량",mw(d.capa_kw)+" MW")+row("접수기준 접속용량",mw(d.recv_kw)+" MW")+
       row("접속계획 반영 접속용량",mw(d.plan_kw)+" MW")+(over>0?row("초과(과부하)",`<span class="neg">${over.toFixed(1)} MW</span>`):"");
   } else h+=row("배전 접속 정보","한전ON 미제공(건설 중 등)");
+  const pl=s.plan;
+  if(pl){
+    h+=`<div class="sub-sec">건설 계획</div>`+row("가압 예정",`<b>${esc(pl.가압)}</b>`)+row("착공",esc(pl.착공))+
+      row("단계",esc(pl.단계))+row("규모",esc(pl.규모))+row("근거",esc(pl.근거));
+  }
   const t=s.trans154||{}, ty=(t.yearly||[]);
   if(ty.length){
     const anyFree=ty.some(y=>y.mw>0);
@@ -134,6 +139,7 @@ function showSubstPopup(s){
       s.lines.map(l=>{const f=(l.dl_capa_kw-l.dl_recv_kw)/1000;
         return `<tr><td>#${esc(l.mtr)} ${esc(l.dl)}</td><td>${mw(l.dl_capa_kw)}</td><td>${mw(l.dl_recv_kw)}</td><td class="${f>0?"pos":"neg"}">${Math.max(0,f).toFixed(1)}</td></tr>`;}).join("")+`</table>`;
   }
+  if(s.location_source) h+=`<div class="pop-note">위치: ${esc(s.location_source)}</div>`;
   h+=`<div class="pop-note">출처: 한전ON 공개 계통정보 (수집 ${esc(SUBST_DATA.collected||"")}). 접속 가능 여부를 확정하는 자료가 아닌 참고자료이며, 변전소·주변압기·배전선로 모두 여유가 있어야 접속 가능.</div></div>`;
   el.innerHTML=h; el.hidden=false;
   overlay.setPosition(ol.proj.fromLonLat([s.lon,s.lat]));
