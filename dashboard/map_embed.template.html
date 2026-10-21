@@ -26,7 +26,7 @@
     box-shadow:0 1px 8px rgba(20,25,30,.08); z-index:3; }
   .map-legend .li{ display:inline-flex; align-items:center; gap:7px; }
   .sw{ width:9px; height:9px; border-radius:50%; display:inline-block; }
-  .map-popup{ min-width:220px; max-width:260px; background:var(--panel); border:1px solid var(--line);
+  .map-popup{ position:relative; min-width:220px; max-width:260px; background:var(--panel); border:1px solid var(--line);
     border-radius:8px; box-shadow:0 6px 24px rgba(20,25,30,.16); font-size:12.5px; color:var(--ink); }
   .map-popup::after{ content:""; position:absolute; left:50%; bottom:-7px; width:12px; height:12px;
     background:var(--panel); border-right:1px solid var(--line); border-bottom:1px solid var(--line);
@@ -41,6 +41,16 @@
   .tag{ display:inline-flex; align-items:center; gap:5px; padding:1px 7px; border-radius:20px;
     font-size:11px; font-weight:600; border:1px solid currentColor; }
   .tag .sw{ width:6px; height:6px; }
+  .map-popup.wide{ min-width:300px; max-width:340px; }
+  .pop-scroll{ max-height:330px; overflow:auto; }
+  .sub-big{ font-size:20px; font-weight:700; }
+  .sub-sec{ margin-top:8px; padding-top:6px; border-top:1px solid var(--line2); font-size:11.5px; color:var(--sub); font-weight:600; }
+  .sub-tbl{ width:100%; border-collapse:collapse; font-size:11.5px; margin-top:3px; }
+  .sub-tbl th{ color:var(--muted); font-weight:500; text-align:right; padding:2px 3px; }
+  .sub-tbl th:first-child,.sub-tbl td:first-child{ text-align:left; }
+  .sub-tbl td{ text-align:right; padding:2px 3px; border-top:1px solid var(--line2); }
+  .neg{ color:#b23b3b; font-weight:600; } .pos{ color:#2e7d4f; font-weight:600; }
+  .pop-note{ margin-top:8px; font-size:10.5px; color:var(--muted); line-height:1.4; }
   .nodata{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
     color:#889098; font-size:14px; text-align:center; padding:40px; }
 </style>
@@ -48,7 +58,7 @@
 <body>
 <div id="map"></div>
 <div class="map-legend" id="legend"></div>
-<div class="map-popup" id="popup" hidden style="position:absolute"></div>
+<div class="map-popup" id="popup" hidden></div>
 
 <!-- VWorld JS 지도라이브러리(vworldMapInit/2DMapClassInit)는 https·srcdoc 환경에서
      document.write·OSM 폴백 문제가 있어 쓰지 않는다. 대신 순수 OpenLayers 로 지도를
@@ -56,6 +66,9 @@
      도메인(Referer)으로 확인된다. -->
 <script>
 const PLANTS = __PLANTS_JSON__;
+// 변전소(한전ON 공개 계통정보). { collected, substations:[...] }
+const SUBST_DATA = __SUBST_JSON__;
+const SUBST = (SUBST_DATA && SUBST_DATA.substations) || [];
 const VWORLD_KEY = "__VWORLD_KEY__";
 const BASEMAP = "__BASEMAP__";
 const COLORS = {태양광:"#c98a2b","육상풍력":"#4a7c59","해상풍력":"#3f6b8c","풍력_구분미상":"#8a9199","복합_검수필요":"#8a9199"};
@@ -69,11 +82,62 @@ function tag(s){const c=COLORS[s]||"#8a9199";return `<span class="tag" style="co
 function renderLegend(){
   const present=SRC_ORDER.filter(s=>PLANTS.some(p=>p.src===s));
   document.getElementById("legend").innerHTML=present.map(s=>
-    `<span class="li"><span class="sw" style="background:${COLORS[s]}"></span>${esc(s.replace("_구분미상","(미상)"))}</span>`).join("");
+    `<span class="li"><span class="sw" style="background:${COLORS[s]}"></span>${esc(s.replace("_구분미상","(미상)"))}</span>`).join("")+
+    (SUBST.some(s=>s.lat!=null)?`<span class="li"><span class="sw" style="background:#b23b3b;border-radius:1px;transform:rotate(45deg)"></span>변전소</span>`:"");
 }
 function iconStyle(color){return new ol.style.Style({image:new ol.style.Circle({
   radius:6, fill:new ol.style.Fill({color}), stroke:new ol.style.Stroke({color:"#fff",width:2})})});}
 
+// 변전소 전체 여유(MW) = 접속기준용량 - 접수기준접속용량 (음수면 0, 초과분 별도 표시)
+function substFree(s){ const d=s.dist; if(!d||d.capa_kw==null||d.recv_kw==null) return null; return (d.capa_kw-d.recv_kw)/1000; }
+function substStyle(s){
+  const free=substFree(s), color=(free!=null&&free>0)?"#2e7d4f":"#b23b3b";
+  return new ol.style.Style({
+    image:new ol.style.RegularShape({points:4, radius:9, angle:0, fill:new ol.style.Fill({color}),
+      stroke:new ol.style.Stroke({color:"#fff",width:2})}),
+    text:new ol.style.Text({text:s.name+(s.status!=="운영"?"("+s.status+")":""), offsetY:-17, font:"600 11px sans-serif",
+      fill:new ol.style.Fill({color:"#1a1f24"}), stroke:new ol.style.Stroke({color:"#fff",width:3})})});
+}
+function mw(kw){ return kw==null?"—":(kw/1000).toFixed(1); }
+function showSubstPopup(s){
+  const el=document.getElementById("popup"); el.classList.add("wide");
+  const row=(k,v)=>`<div class="pop-row"><span class="k">${k}</span><span class="v">${v}</span></div>`;
+  const d=s.dist, free=substFree(s);
+  let h=`<div class="pop-head"><div class="pop-title">${esc(s.name)} 변전소${s.status!=="운영"?` <span style="color:#889098;font-weight:500">(${esc(s.status)})</span>`:""}</div>`+
+    `<button class="pop-close" onclick="hidePopup()">&times;</button></div><div class="pop-body pop-scroll">`;
+  if(d){
+    const over=free<0?-free:0;
+    h+=`<div class="pop-row"><span class="k">변전소 전체 여유</span><span class="v sub-big ${free>0?"pos":"neg"}">${Math.max(0,free).toFixed(1)} MW</span></div>`+
+      row("접속기준용량",mw(d.capa_kw)+" MW")+row("접수기준 접속용량",mw(d.recv_kw)+" MW")+
+      row("접속계획 반영 접속용량",mw(d.plan_kw)+" MW")+(over>0?row("초과(과부하)",`<span class="neg">${over.toFixed(1)} MW</span>`):"");
+  } else h+=row("배전 접속 정보","한전ON 미제공(건설 중 등)");
+  const t=s.trans154||{}, ty=(t.yearly||[]);
+  if(ty.length){
+    const anyFree=ty.some(y=>y.mw>0);
+    h+=`<div class="sub-sec">송전망 접속(154kV)</div>`+
+      (anyFree? `<table class="sub-tbl"><tr>${ty.map(y=>`<th>${y.year}</th>`).join("")}</tr><tr>${ty.map(y=>`<td>${y.mw==null?"—":y.mw}</td>`).join("")}</tr></table>`
+              : row("송전망 여유",`<span class="neg">${ty[0].year}~${ty[ty.length-1].year} 여유 없음</span>`))+
+      (t.permit_req_mw!=null?row("발전허가 신청용량",t.permit_req_mw+" MW"):"");
+  }
+  const sp=s.supply||{}, cur=a=>(a&&a.length)?a[0]:null, s22=cur(sp.kv22), s154=cur(sp.kv154);
+  if(s22||s154){
+    const v=x=>x?(x.mw>0?`<span class="pos">${x.mw} MW</span>`:`<span class="neg">없음</span>`):"—";
+    h+=`<div class="sub-sec">전력공급 여유(${(s22||s154).year})</div>`+row("22.9kV",v(s22))+row("154kV",v(s154));
+  }
+  const b=s.breaker;
+  if(b){
+    const v=(f,t)=>`<span class="${f>0?"pos":"neg"}">${f}</span> / ${t}대`;
+    h+=`<div class="sub-sec">차단기 여유 Bay</div>`+row("22.9kV",v(b.kv22_free,b.kv22_total))+row("154kV",v(b.kv154_free,b.kv154_total));
+  }
+  if((s.lines||[]).length){
+    h+=`<div class="sub-sec">배전선로 (${s.lines.length}개, MW)</div><table class="sub-tbl"><tr><th>주변압기·선로</th><th>기준</th><th>접수</th><th>여유</th></tr>`+
+      s.lines.map(l=>{const f=(l.dl_capa_kw-l.dl_recv_kw)/1000;
+        return `<tr><td>#${esc(l.mtr)} ${esc(l.dl)}</td><td>${mw(l.dl_capa_kw)}</td><td>${mw(l.dl_recv_kw)}</td><td class="${f>0?"pos":"neg"}">${Math.max(0,f).toFixed(1)}</td></tr>`;}).join("")+`</table>`;
+  }
+  h+=`<div class="pop-note">출처: 한전ON 공개 계통정보 (수집 ${esc(SUBST_DATA.collected||"")}). 접속 가능 여부를 확정하는 자료가 아닌 참고자료이며, 변전소·주변압기·배전선로 모두 여유가 있어야 접속 가능.</div></div>`;
+  el.innerHTML=h; el.hidden=false;
+  overlay.setPosition(ol.proj.fromLonLat([s.lon,s.lat]));
+}
 function drawMarkers(){
   src.clear();
   PLANTS.forEach(p=>{
@@ -81,9 +145,14 @@ function drawMarkers(){
     const f=new ol.Feature({geometry:new ol.geom.Point(ol.proj.fromLonLat([p.lon,p.lat]))});
     f.setStyle(iconStyle(COLORS[p.src]||"#8a9199")); f.set("pid",p.id); src.addFeature(f);
   });
+  SUBST.forEach(s=>{
+    if(s.lat==null||s.lon==null) return;          // 위치 근거 없는 변전소는 찍지 않는다
+    const f=new ol.Feature({geometry:new ol.geom.Point(ol.proj.fromLonLat([s.lon,s.lat]))});
+    f.setStyle(substStyle(s)); f.set("sid",s.code); src.addFeature(f);
+  });
 }
 function showPopup(p){
-  const el=document.getElementById("popup");
+  const el=document.getElementById("popup"); el.classList.remove("wide");
   const row=(k,v)=>v?`<div class="pop-row"><span class="k">${k}</span><span class="v">${v}</span></div>`:"";
   el.innerHTML=`<div class="pop-head"><div class="pop-title">${esc(p.name)}</div>`+
     `<button class="pop-close" onclick="hidePopup()">&times;</button></div><div class="pop-body">`+
@@ -122,15 +191,17 @@ function buildMap(){
       .extend([ new ol.control.ScaleLine() ]),
     interactions: ol.interaction.defaults() });
   window.__olMap=olMap;
-  overlay=new ol.Overlay({element:document.getElementById("popup"),positioning:"bottom-center",stopEvent:true,offset:[0,-6]});
+  overlay=new ol.Overlay({element:document.getElementById("popup"),positioning:"bottom-center",stopEvent:true,offset:[0,-6],
+    autoPan:true, autoPanMargin:20});
   olMap.addOverlay(overlay);
   const CENTER=ol.proj.fromLonLat([126.5,34.6]), ZOOM=9;
   function fitView(){ olMap.getView().setCenter(CENTER); olMap.getView().setZoom(ZOOM); olMap.updateSize(); }
   olMap.updateSize(); fitView();
   window.addEventListener("resize",()=>{ olMap.updateSize(); });
   olMap.on("click",evt=>{
-    let hit=null; olMap.forEachFeatureAtPixel(evt.pixel,f=>{if(f.get("pid")){hit=f;return true;}});
-    if(hit){const p=PLANTS.find(x=>x.id===hit.get("pid")); if(p)showPopup(p);} else hidePopup();
+    let hit=null; olMap.forEachFeatureAtPixel(evt.pixel,f=>{if(f.get("pid")||f.get("sid")){hit=f;return true;}});
+    if(hit&&hit.get("sid")){const s=SUBST.find(x=>x.code===hit.get("sid")); if(s)showSubstPopup(s);}
+    else if(hit){const p=PLANTS.find(x=>x.id===hit.get("pid")); if(p)showPopup(p);} else hidePopup();
   });
   olMap.on("pointermove",evt=>{olMap.getTargetElement().style.cursor=olMap.hasFeatureAtPixel(evt.pixel)?"pointer":"";});
   renderLegend();

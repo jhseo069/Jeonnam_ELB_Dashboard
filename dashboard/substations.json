@@ -1,0 +1,695 @@
+{
+ "collected": "2026-10-21",
+ "source": "한전ON(online.kepco.co.kr) 재생e 연계 여유용량·배전선로 여유용량·차단기 여유 Bay·전력공급 여유용량",
+ "substations": [
+  {
+   "code": "2678",
+   "name": "고창",
+   "status": "운영",
+   "address": "전북특별자치도 고창군 고창읍 성두리 442-2",
+   "location_source": "VWorld 장소검색 '고창변전소'",
+   "lat": 35.448625,
+   "lon": 126.692708,
+   "emd": "아산면",
+   "dist": {
+    "name": "고창",
+    "capa_kw": 234000.0,
+    "recv_kw": 499982.0,
+    "plan_kw": 455831.0
+   },
+   "lines": [
+    {
+     "mtr": "1",
+     "mtr_capa_kw": 59000.0,
+     "mtr_recv_kw": 160608.0,
+     "mtr_plan_kw": 148994.0,
+     "dl": "고무",
+     "dl_capa_kw": 12000.0,
+     "dl_recv_kw": 21302.0,
+     "dl_plan_kw": 18839.0,
+     "sample": "고창읍 도산리 산7-4"
+    },
+    {
+     "mtr": "1",
+     "mtr_capa_kw": 59000.0,
+     "mtr_recv_kw": 160608.0,
+     "mtr_plan_kw": 148994.0,
+     "dl": "공단",
+     "dl_capa_kw": 18000.0,
+     "dl_recv_kw": 35955.0,
+     "dl_plan_kw": 33765.0,
+     "sample": "고수면 우평리 114-5"
+    },
+    {
+     "mtr": "1",
+     "mtr_capa_kw": 59000.0,
+     "mtr_recv_kw": 160608.0,
+     "mtr_plan_kw": 148994.0,
+     "dl": "대산",
+     "dl_capa_kw": 13000.0,
+     "dl_recv_kw": 37509.0,
+     "dl_plan_kw": 33335.0,
+     "sample": "고수면 봉산리 산50-1"
+    },
+    {
+     "mtr": "1",
+     "mtr_capa_kw": 59000.0,
+     "mtr_recv_kw": 160608.0,
+     "mtr_plan_kw": 148994.0,
+     "dl": "성송",
+     "dl_capa_kw": 19000.0,
+     "dl_recv_kw": 65842.0,
+     "dl_plan_kw": 63055.0,
+     "sample": "고수면 남산리 551-3"
+    },
+    {
+     "mtr": "2",
+     "mtr_capa_kw": 59000.0,
+     "mtr_recv_kw": 108610.0,
+     "mtr_plan_kw": 96613.0,
+     "dl": "고수",
+     "dl_capa_kw": 19000.0,
+     "dl_recv_kw": 44182.0,
+     "dl_plan_kw": 40113.0,
+     "sample": "고수면 남산리 0-11"
+    },
+    {
+     "mtr": "2",
+     "mtr_capa_kw": 59000.0,
+     "mtr_recv_kw": 108610.0,
+     "mtr_plan_kw": 96613.0,
+     "dl": "시내",
+     "dl_capa_kw": 19000.0,
+     "dl_recv_kw": 21604.0,
+     "dl_plan_kw": 16769.0,
+     "sample": "고창읍 교촌리 100-13"
+    },
+    {
+     "mtr": "2",
+     "mtr_capa_kw": 59000.0,
+     "mtr_recv_kw": 108610.0,
+     "mtr_plan_kw": 96613.0,
+     "dl": "해리",
+     "dl_capa_kw": 13000.0,
+     "dl_recv_kw": 10646.0,
+     "dl_plan_kw": 8400.0,
+     "sample": "고창읍 덕정리 425-13"
+    },
+    {
+     "mtr": "2",
+     "mtr_capa_kw": 59000.0,
+     "mtr_recv_kw": 108610.0,
+     "mtr_plan_kw": 96613.0,
+     "dl": "흥덕",
+     "dl_capa_kw": 13000.0,
+     "dl_recv_kw": 32178.0,
+     "dl_plan_kw": 31231.0,
+     "sample": "고창읍 성두리 441-2"
+    },
+    {
+     "mtr": "3",
+     "mtr_capa_kw": 58000.0,
+     "mtr_recv_kw": 98074.0,
+     "mtr_plan_kw": 90687.0,
+     "dl": "모양",
+     "dl_capa_kw": 13000.0,
+     "dl_recv_kw": 12418.0,
+     "dl_plan_kw": 10676.0,
+     "sample": "고수면 남산리 산9-2"
+    },
+    {
+     "mtr": "3",
+     "mtr_capa_kw": 58000.0,
+     "mtr_recv_kw": 98074.0,
+     "mtr_plan_kw": 90687.0,
+     "dl": "무장",
+     "dl_capa_kw": 19000.0,
+     "dl_recv_kw": 34921.0,
+     "dl_plan_kw": 31254.0,
+     "sample": "고수면 두평리 100-1"
+    },
+    {
+     "mtr": "3",
+     "mtr_capa_kw": 58000.0,
+     "mtr_recv_kw": 98074.0,
+     "mtr_plan_kw": 90687.0,
+     "dl": "석정",
+     "dl_capa_kw": 12000.0,
+     "dl_recv_kw": 198.0,
+     "dl_plan_kw": 397.0,
+     "sample": "고창읍 노동리 1-15"
+    },
+    {
+     "mtr": "3",
+     "mtr_capa_kw": 58000.0,
+     "mtr_recv_kw": 98074.0,
+     "mtr_plan_kw": 90687.0,
+     "dl": "흥농",
+     "dl_capa_kw": 19000.0,
+     "dl_recv_kw": 35537.0,
+     "dl_plan_kw": 33360.0,
+     "sample": "신림면 법지리 429-12"
+    },
+    {
+     "mtr": "4",
+     "mtr_capa_kw": 58000.0,
+     "mtr_recv_kw": 132690.0,
+     "mtr_plan_kw": 119537.0,
+     "dl": "고창",
+     "dl_capa_kw": 13000.0,
+     "dl_recv_kw": 31326.0,
+     "dl_plan_kw": 27024.0,
+     "sample": "고창읍 덕정리 10"
+    },
+    {
+     "mtr": "4",
+     "mtr_capa_kw": 58000.0,
+     "mtr_recv_kw": 132690.0,
+     "mtr_plan_kw": 119537.0,
+     "dl": "선운",
+     "dl_capa_kw": 13000.0,
+     "dl_recv_kw": 10021.0,
+     "dl_plan_kw": 7742.0,
+     "sample": "고창읍 덕산리 367-16"
+    },
+    {
+     "mtr": "4",
+     "mtr_capa_kw": 58000.0,
+     "mtr_recv_kw": 132690.0,
+     "mtr_plan_kw": 119537.0,
+     "dl": "성내",
+     "dl_capa_kw": 12000.0,
+     "dl_recv_kw": 20573.0,
+     "dl_plan_kw": 19882.0,
+     "sample": "고창읍 성두리 00-00"
+    },
+    {
+     "mtr": "4",
+     "mtr_capa_kw": 58000.0,
+     "mtr_recv_kw": 132690.0,
+     "mtr_plan_kw": 119537.0,
+     "dl": "아산",
+     "dl_capa_kw": 19000.0,
+     "dl_recv_kw": 54856.0,
+     "dl_plan_kw": 49802.0,
+     "sample": "고수면 우평리 산52"
+    },
+    {
+     "mtr": "4",
+     "mtr_capa_kw": 58000.0,
+     "mtr_recv_kw": 132690.0,
+     "mtr_plan_kw": 119537.0,
+     "dl": "용산",
+     "dl_capa_kw": 13000.0,
+     "dl_recv_kw": 15914.0,
+     "dl_plan_kw": 15007.0,
+     "sample": "부안면 검산리 664-1"
+    }
+   ],
+   "trans154": {
+    "yearly": [
+     {
+      "year": 2026,
+      "mw": 0.0
+     },
+     {
+      "year": 2027,
+      "mw": 0.0
+     },
+     {
+      "year": 2028,
+      "mw": 0.0
+     },
+     {
+      "year": 2029,
+      "mw": 0.0
+     },
+     {
+      "year": 2030,
+      "mw": 0.0
+     },
+     {
+      "year": 2031,
+      "mw": 0.0
+     },
+     {
+      "year": 2032,
+      "mw": 0.0
+     }
+    ],
+    "permit_req_mw": 5.0,
+    "connect_wait": null
+   },
+   "breaker": {
+    "kv22_free": 5.0,
+    "kv22_total": 26.0,
+    "kv154_free": -4.0,
+    "kv154_total": 6.0
+   },
+   "supply": {
+    "kv22": [
+     {
+      "year": 2026,
+      "mw": 69.0
+     },
+     {
+      "year": 2027,
+      "mw": 67.0
+     },
+     {
+      "year": 2028,
+      "mw": 65.0
+     },
+     {
+      "year": 2029,
+      "mw": 64.0
+     },
+     {
+      "year": 2030,
+      "mw": 65.0
+     },
+     {
+      "year": 2031,
+      "mw": 64.0
+     },
+     {
+      "year": 2032,
+      "mw": 58.0
+     }
+    ],
+    "kv154": [
+     {
+      "year": 2026,
+      "mw": 0.0
+     },
+     {
+      "year": 2027,
+      "mw": 0.0
+     },
+     {
+      "year": 2028,
+      "mw": 0.0
+     },
+     {
+      "year": 2029,
+      "mw": 0.0
+     },
+     {
+      "year": 2030,
+      "mw": 0.0
+     },
+     {
+      "year": 2031,
+      "mw": 0.0
+     },
+     {
+      "year": 2032,
+      "mw": 0.0
+     }
+    ]
+   }
+  },
+  {
+   "code": "D264",
+   "name": "서고창",
+   "status": "운영",
+   "address": "",
+   "location_source": "",
+   "lat": null,
+   "lon": null,
+   "emd": "상하면",
+   "dist": {
+    "name": "서고창",
+    "capa_kw": 100000.0,
+    "recv_kw": 105251.0,
+    "plan_kw": 97343.0
+   },
+   "lines": [
+    {
+     "mtr": "1",
+     "mtr_capa_kw": 50000.0,
+     "mtr_recv_kw": 105251.0,
+     "mtr_plan_kw": 97343.0,
+     "dl": "공음",
+     "dl_capa_kw": 19000.0,
+     "dl_recv_kw": 26268.0,
+     "dl_plan_kw": 23270.0,
+     "sample": "공음면 구암리 1000"
+    },
+    {
+     "mtr": "1",
+     "mtr_capa_kw": 50000.0,
+     "mtr_recv_kw": 105251.0,
+     "mtr_plan_kw": 97343.0,
+     "dl": "상공",
+     "dl_capa_kw": 12000.0,
+     "dl_recv_kw": 34490.0,
+     "dl_plan_kw": 32307.0,
+     "sample": "공음면 두암리 1003"
+    },
+    {
+     "mtr": "1",
+     "mtr_capa_kw": 50000.0,
+     "mtr_recv_kw": 105251.0,
+     "mtr_plan_kw": 97343.0,
+     "dl": "심원",
+     "dl_capa_kw": 13000.0,
+     "dl_recv_kw": 13885.0,
+     "dl_plan_kw": 10655.0,
+     "sample": "상하면 용정리 1023"
+    },
+    {
+     "mtr": "1",
+     "mtr_capa_kw": 50000.0,
+     "mtr_recv_kw": 105251.0,
+     "mtr_plan_kw": 97343.0,
+     "dl": "용수",
+     "dl_capa_kw": 12000.0,
+     "dl_recv_kw": 30608.0,
+     "dl_plan_kw": 30111.0,
+     "sample": "무장면 교흥리 530"
+    }
+   ],
+   "trans154": {
+    "yearly": [
+     {
+      "year": 2026,
+      "mw": 0.0
+     },
+     {
+      "year": 2027,
+      "mw": 0.0
+     },
+     {
+      "year": 2028,
+      "mw": 0.0
+     },
+     {
+      "year": 2029,
+      "mw": 0.0
+     },
+     {
+      "year": 2030,
+      "mw": 0.0
+     },
+     {
+      "year": 2031,
+      "mw": 0.0
+     },
+     {
+      "year": 2032,
+      "mw": 0.0
+     }
+    ],
+    "permit_req_mw": 0.0,
+    "connect_wait": null
+   },
+   "breaker": {
+    "kv22_free": 0.0,
+    "kv22_total": 9.0,
+    "kv154_free": -2.0,
+    "kv154_total": 7.0
+   },
+   "supply": {
+    "kv22": [
+     {
+      "year": 2026,
+      "mw": 0.0
+     },
+     {
+      "year": 2027,
+      "mw": 0.0
+     },
+     {
+      "year": 2028,
+      "mw": 0.0
+     },
+     {
+      "year": 2029,
+      "mw": 0.0
+     },
+     {
+      "year": 2030,
+      "mw": 0.0
+     },
+     {
+      "year": 2031,
+      "mw": 0.0
+     },
+     {
+      "year": 2032,
+      "mw": 0.0
+     }
+    ],
+    "kv154": [
+     {
+      "year": 2026,
+      "mw": 0.0
+     },
+     {
+      "year": 2027,
+      "mw": 0.0
+     },
+     {
+      "year": 2028,
+      "mw": 0.0
+     },
+     {
+      "year": 2029,
+      "mw": 0.0
+     },
+     {
+      "year": 2030,
+      "mw": 0.0
+     },
+     {
+      "year": 2031,
+      "mw": 0.0
+     },
+     {
+      "year": 2032,
+      "mw": 0.0
+     }
+    ]
+   }
+  },
+  {
+   "code": "E275",
+   "name": "남고창",
+   "status": "건설중",
+   "address": "",
+   "location_source": "",
+   "lat": null,
+   "lon": null,
+   "emd": "무장면",
+   "dist": null,
+   "lines": [],
+   "trans154": {
+    "yearly": [
+     {
+      "year": 2026,
+      "mw": 0.0
+     },
+     {
+      "year": 2027,
+      "mw": 0.0
+     },
+     {
+      "year": 2028,
+      "mw": 0.0
+     },
+     {
+      "year": 2029,
+      "mw": 0.0
+     },
+     {
+      "year": 2030,
+      "mw": 0.0
+     },
+     {
+      "year": 2031,
+      "mw": 0.0
+     },
+     {
+      "year": 2032,
+      "mw": 0.0
+     }
+    ],
+    "permit_req_mw": 190.892,
+    "connect_wait": null
+   },
+   "breaker": null,
+   "supply": {
+    "kv22": [
+     {
+      "year": 2026,
+      "mw": 0.0
+     },
+     {
+      "year": 2027,
+      "mw": 0.0
+     },
+     {
+      "year": 2028,
+      "mw": 221.0
+     },
+     {
+      "year": 2029,
+      "mw": 221.0
+     },
+     {
+      "year": 2030,
+      "mw": 221.0
+     },
+     {
+      "year": 2031,
+      "mw": 221.0
+     },
+     {
+      "year": 2032,
+      "mw": 221.0
+     }
+    ],
+    "kv154": [
+     {
+      "year": 2026,
+      "mw": 0.0
+     },
+     {
+      "year": 2027,
+      "mw": 0.0
+     },
+     {
+      "year": 2028,
+      "mw": 575.0
+     },
+     {
+      "year": 2029,
+      "mw": 685.0
+     },
+     {
+      "year": 2030,
+      "mw": 690.0
+     },
+     {
+      "year": 2031,
+      "mw": 780.0
+     },
+     {
+      "year": 2032,
+      "mw": 750.0
+     }
+    ]
+   }
+  },
+  {
+   "code": "E590",
+   "name": "고창#3",
+   "status": "건설중",
+   "address": "",
+   "location_source": "",
+   "lat": null,
+   "lon": null,
+   "emd": "성송면",
+   "dist": null,
+   "lines": [],
+   "trans154": {
+    "yearly": [
+     {
+      "year": 2026,
+      "mw": 0.0
+     },
+     {
+      "year": 2027,
+      "mw": 0.0
+     },
+     {
+      "year": 2028,
+      "mw": 0.0
+     },
+     {
+      "year": 2029,
+      "mw": 0.0
+     },
+     {
+      "year": 2030,
+      "mw": 0.0
+     },
+     {
+      "year": 2031,
+      "mw": 0.0
+     },
+     {
+      "year": 2032,
+      "mw": 0.0
+     }
+    ],
+    "permit_req_mw": 0.0,
+    "connect_wait": null
+   },
+   "breaker": null,
+   "supply": {
+    "kv22": [
+     {
+      "year": 2026,
+      "mw": 0.0
+     },
+     {
+      "year": 2027,
+      "mw": 0.0
+     },
+     {
+      "year": 2028,
+      "mw": 166.0
+     },
+     {
+      "year": 2029,
+      "mw": 166.0
+     },
+     {
+      "year": 2030,
+      "mw": 166.0
+     },
+     {
+      "year": 2031,
+      "mw": 166.0
+     },
+     {
+      "year": 2032,
+      "mw": 166.0
+     }
+    ],
+    "kv154": [
+     {
+      "year": 2026,
+      "mw": 0.0
+     },
+     {
+      "year": 2027,
+      "mw": 0.0
+     },
+     {
+      "year": 2028,
+      "mw": 0.0
+     },
+     {
+      "year": 2029,
+      "mw": 0.0
+     },
+     {
+      "year": 2030,
+      "mw": 0.0
+     },
+     {
+      "year": 2031,
+      "mw": 0.0
+     },
+     {
+      "year": 2032,
+      "mw": 0.0
+     }
+    ]
+   }
+  }
+ ]
+}

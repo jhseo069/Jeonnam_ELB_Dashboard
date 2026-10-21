@@ -1,0 +1,13 @@
+{
+  "_설명": "지도에 표시할 변전소. code=한전ON 변전소코드(PSPWPMNGNO). 위치는 address(지번, VWorld로 좌표 변환) 또는 lat/lon. 위치 근거 없으면 비워 두고 지도에 찍지 않는다(목록에만 표시).",
+  "sido_code": "52",
+  "sigg_code": "790",
+  "addr": {"do": "전북특별자치도", "si": "-기타지역", "gu": "고창군"},
+  "substations": [
+    {"code": "2678", "name": "고창", "status": "운영",
+     "address": "전북특별자치도 고창군 고창읍 성두리 442-2", "location_source": "VWorld 장소검색 '고창변전소'"},
+    {"code": "D264", "name": "서고창", "status": "운영", "address": "", "location_source": ""},
+    {"code": "E275", "name": "남고창", "status": "건설중", "address": "", "location_source": ""},
+    {"code": "E590", "name": "고창#3", "status": "건설중", "address": "", "location_source": ""}
+  ]
+}

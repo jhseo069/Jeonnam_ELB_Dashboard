@@ -34,6 +34,7 @@ reports/
 dashboard/*
 !dashboard/index.template.html
 !dashboard/data.json
+!dashboard/substations.json
 !dashboard/app_embed.html
 !dashboard/map_embed.template.html
 

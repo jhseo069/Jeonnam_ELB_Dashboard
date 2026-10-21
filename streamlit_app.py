@@ -22,6 +22,7 @@ import streamlit.components.v1 as components
 ROOT = Path(__file__).resolve().parent
 DATA_PATH = ROOT / "dashboard" / "data.json"
 MAP_TEMPLATE = ROOT / "dashboard" / "map_embed.template.html"
+SUBST_PATH = ROOT / "dashboard" / "substations.json"
 
 COLORS = {"태양광": "#c98a2b", "육상풍력": "#4a7c59", "해상풍력": "#3f6b8c",
           "풍력_구분미상": "#8a9199", "복합_검수필요": "#8a9199"}
@@ -68,6 +69,14 @@ def clean_domain(raw: str) -> str:
 
 
 plants, meta = load_data(DATA_PATH.stat().st_mtime)
+
+
+@st.cache_data
+def load_subst(mtime: float) -> dict:
+    return json.loads(SUBST_PATH.read_text(encoding="utf-8")) if SUBST_PATH.exists() else {}
+
+
+subst_data = load_subst(SUBST_PATH.stat().st_mtime if SUBST_PATH.exists() else 0.0)
 df = pd.DataFrame(plants)
 VWORLD_KEY = get_secret("VWORLD_API_KEY").strip()
 VWORLD_DOMAIN = clean_domain(get_secret("VWORLD_DOMAIN", "localhost"))
@@ -116,7 +125,8 @@ SORT_OPTIONS = {
 }
 sort_sel = st.sidebar.selectbox("목록 정렬", list(SORT_OPTIONS))
 
-st.sidebar.caption("지도의 점을 클릭하면 발전소 정보가 표시됩니다.")
+show_subst = st.sidebar.checkbox("변전소 표시 (고창, 한전ON)", value=True)
+st.sidebar.caption("지도의 점을 클릭하면 발전소 정보가, 마름모를 클릭하면 변전소 계통 여유가 표시됩니다.")
 
 
 # ── 필터 적용 ───────────────────────────────────────────────────────
@@ -171,11 +181,45 @@ else:
             .replace("__VWORLD_KEY__", VWORLD_KEY)
             .replace("__VWORLD_DOMAIN__", VWORLD_DOMAIN)
             .replace("__BASEMAP__", BASEMAP_CODE)
-            .replace("__PLANTS_JSON__", plants_json))
+            .replace("__PLANTS_JSON__", plants_json)
+            .replace("__SUBST_JSON__", json.dumps(subst_data if show_subst else {}, ensure_ascii=False)))
     components.html(html, height=560, scrolling=False)
 
 
 # ── 표 ──────────────────────────────────────────────────────────────
+# ── 변전소 계통 여유 (한전ON) ──────────────────────────────────────────
+if show_subst and subst_data.get("substations"):
+    st.markdown("##### 고창 변전소 계통 여유")
+    def _free(s):
+        d = s.get("dist") or {}
+        if d.get("capa_kw") is None or d.get("recv_kw") is None:
+            return None
+        return round(max(0.0, (d["capa_kw"] - d["recv_kw"]) / 1000), 1)
+    def _trans(s):
+        ys = (s.get("trans154") or {}).get("yearly") or []
+        if not ys:
+            return "—"
+        frees = [y for y in ys if (y.get("mw") or 0) > 0]
+        return f"{frees[0]['year']}년 {frees[0]['mw']}MW~" if frees else f"{ys[0]['year']}~{ys[-1]['year']} 없음"
+    rows = []
+    for s in subst_data["substations"]:
+        d = s.get("dist") or {}
+        b = s.get("breaker") or {}
+        rows.append({
+            "변전소": s["name"], "상태": s["status"], "읍면": s.get("emd"),
+            "변전소 여유(MW)": _free(s),
+            "접속기준(MW)": round(d["capa_kw"] / 1000, 1) if d.get("capa_kw") else None,
+            "접수기준(MW)": round(d["recv_kw"] / 1000, 1) if d.get("recv_kw") else None,
+            "배전선로": len(s.get("lines") or []),
+            "송전망 154kV 여유": _trans(s),
+            "차단기 22.9kV": f"{b['kv22_free']:.0f}/{b['kv22_total']:.0f}" if b else "—",
+            "차단기 154kV": f"{b['kv154_free']:.0f}/{b['kv154_total']:.0f}" if b else "—",
+            "지도": "표시" if s.get("lat") is not None else "위치 미정",
+        })
+    st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+    st.caption(f"출처 한전ON 공개 계통정보 · 수집 {subst_data.get('collected', '—')} · "
+               "접속 가능 여부를 확정하는 자료가 아닌 참고자료")
+
 st.markdown("##### 발전소 목록")
 # 정렬: 값 없는 행(허가대장전용 등 회차·허가일 없음)은 항상 뒤로
 sort_col, ascending = SORT_OPTIONS[sort_sel]
