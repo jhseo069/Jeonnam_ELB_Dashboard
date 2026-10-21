@@ -1,6 +1,6 @@
 r"""한전ON 공개 계통정보로 변전소 여유용량을 수집한다 → dashboard/substations.json
 
-대상: config/substations.json (현재 전북 고창군 변전소).
+대상: config/substations.json (지역 묶음별: 전북 고창군, 전남 영광군 홍농 …).
 출처(한전ON 화면이 쓰는 공개 조회 API, 로그인 불필요):
   - 154kV 송전망 여유(연도별)·발전허가 신청용량·접속예정 사업자  /ew/cpct/retrieveTransCpct154kV
   - 22.9kV·154kV 차단기 여유 Bay                                  /ew/cpct/retrieveCbrOvplsInfo
@@ -12,7 +12,9 @@ r"""한전ON 공개 계통정보로 변전소 여유용량을 수집한다 → d
 한전ON 고지: 단순 참고자료이며 3·6·9·12월 분기(배전은 수시) 갱신. 실제 접속 가능
 여부는 별도 검토 필요.
 
-실행: .venv\Scripts\python.exe tools\collect_kepco_substations.py
+실행: .venv\Scripts\python.exe tools\collect_kepco_substations.py              (전체)
+      .venv\Scripts\python.exe tools\collect_kepco_substations.py --region 영광   (해당 지역만, 나머지는 이전 값 유지)
+      .venv\Scripts\python.exe tools\collect_kepco_substations.py --locate-only   (위치만 갱신, 한전ON 재조회 없음)
 """
 
 from __future__ import annotations
@@ -46,17 +48,13 @@ class Kepco:
         self.s.get(f"{BASE}/EWM092D00", timeout=30)
         self.calls = 0
 
-    def post(self, path: str, body: dict | str, form: bool = False) -> dict:
+    def post(self, path: str, body: dict) -> dict:
         for attempt in range(3):
             try:
                 time.sleep(DELAY)
                 self.calls += 1
-                if form:
-                    r = self.s.post(BASE + path, data=body, timeout=30,
-                                    headers={"Content-Type": "application/x-www-form-urlencoded"})
-                else:
-                    r = self.s.post(BASE + path, data=json.dumps(body, ensure_ascii=False).encode(),
-                                    timeout=30)
+                r = self.s.post(BASE + path, data=json.dumps(body, ensure_ascii=False).encode(),
+                                timeout=30)
                 r.raise_for_status()
                 return r.json()
             except Exception:
@@ -102,26 +100,30 @@ def locate(subs: list[dict]) -> None:
                 s["lat"], s["lon"] = round(g["위도"], 6), round(g["경도"], 6)
 
 
+def all_substations(cfg: dict) -> list[dict]:
+    return [sub for region in cfg["regions"] for sub in region["substations"]]
+
+
 def locate_only() -> None:
     """한전ON 재조회 없이 config 의 주소·좌표만 substations.json 에 반영한다."""
     cfg = json.loads(CONFIG.read_text(encoding="utf-8"))
-    locate(cfg["substations"])
+    subs = all_substations(cfg)
+    locate(subs)
     data = json.loads(OUT.read_text(encoding="utf-8"))
-    by_code = {s["code"]: s for s in cfg["substations"]}
+    by_code = {s["code"]: s for s in subs}
+    region_of = {s["code"]: r["name"] for r in cfg["regions"] for s in r["substations"]}
     for s in data["substations"]:
         c = by_code.get(s["code"], {})
+        s["region"] = region_of.get(s["code"], s.get("region"))
         for k in ("address", "location_source", "lat", "lon"):
             s[k] = c.get(k, s.get(k))
         print(f"{s['name']}: {s.get('lat')}, {s.get('lon')}  ({s.get('address') or '위치 미정'})")
     OUT.write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding="utf-8")
 
 
-def main() -> None:
-    cfg = json.loads(CONFIG.read_text(encoding="utf-8"))
-    codes = {s["code"] for s in cfg["substations"]}
-    k = Kepco()
-    sido, sigg = cfg["sido_code"], cfg["sigg_code"]
-    year = date.today().year
+def collect_region(k: Kepco, region: dict, year: int, subst: dict, lines: dict) -> list[dict]:
+    sido, sigg = region["sido_code"], region["sigg_code"]
+    print(f"[{region['name']}]")
 
     # 1) 154kV 송전망 여유 — 연도 인자는 조회 기간 끝 해(화면 기본값과 동일하게 +6)
     trans = {r["PSPWPMNGNO"]: r for r in k.post("/ew/cpct/retrieveTransCpct154kV", {
@@ -140,11 +142,11 @@ def main() -> None:
     }).get("dma_subSt154list") or [])}
 
     # 4) 배전: 군 전역 주소 표본 조회로 변전소/주변압기/배전선로 수집
-    addr = dict(cfg["addr"])
-    subst: dict[str, dict] = {}
-    lines: dict[tuple, dict] = {}
+    # subst/lines 는 모든 지역이 공유한다: 경계 변전소(홍농 등)는 이웃 군 주소도 담당하므로
+    # 다른 지역 조회에서 나온 선로까지 합쳐야 빠짐이 없다.
+    addr = dict(region["addr"])
     lidongs = k.addr_list(2, addr)
-    print(f"동/면 {len(lidongs)}개 조회 시작")
+    print(f"  동/면 {len(lidongs)}개 조회 시작")
     for lidong in lidongs:
         lis = k.addr_list(3, {**addr, "lidong": lidong}) or [""]
         for li in lis:
@@ -171,19 +173,23 @@ def main() -> None:
                         "dl": r.get("DL_NM"), "dl_capa_kw": _num(r.get("DL_CAPA")),
                         "dl_recv_kw": _num(r.get("DL_PWR")), "dl_plan_kw": _num(r.get("G_DL_CAPA")),
                         "sample": f"{lidong} {li} {jibun}".strip()})
-        print(f"  {lidong}: 누적 변전소 {len(subst)} / 선로 {len(lines)} (호출 {k.calls})", flush=True)
+        print(f"    {lidong}: 누적 변전소 {len(subst)} / 선로 {len(lines)} (호출 {k.calls})", flush=True)
 
-    locate(cfg["substations"])
+    return {"trans": trans, "cbr": cbr, "sup23": sup23, "sup154": sup154}
 
+
+def build_outputs(region: dict, meta: dict, subst: dict, lines: dict, year: int) -> list[dict]:
+    trans, cbr, sup23, sup154 = meta["trans"], meta["cbr"], meta["sup23"], meta["sup154"]
+    locate(region["substations"])
     out = []
-    for s in cfg["substations"]:
+    for s in region["substations"]:
         c = s["code"]
         t, b, d = trans.get(c, {}), cbr.get(c, {}), subst.get(c, {})
         base_year = int(t.get("RVW_YY") or year)
         my_lines = sorted((v for key, v in lines.items() if key[0] == c),
                           key=lambda v: (v["mtr"], v["dl"] or ""))
         out.append({
-            "code": c, "name": s["name"], "status": s["status"],
+            "code": c, "name": s["name"], "status": s["status"], "region": region["name"],
             "address": s.get("address", ""), "location_source": s.get("location_source", ""),
             "lat": s.get("lat"), "lon": s.get("lon"),
             "emd": t.get("EMD_NM") or b.get("EMD_NM"),
@@ -198,14 +204,41 @@ def main() -> None:
             "supply": {"kv22": yearly(sup23[c], int(sup23[c].get("CRTR_YY") or year)) if c in sup23 else [],
                        "kv154": yearly(sup154[c], int(sup154[c].get("CRTR_YY") or year)) if c in sup154 else []},
         })
-        missing = [x for x in ("dist", "trans154", "breaker") if not out[-1][x]]
-        print(f"{s['name']}({c}): 선로 {len(my_lines)}개, 배전 {'O' if d else 'X'}, "
-              f"송전 {'O' if t else 'X'}, 차단기 {'O' if b else 'X'}")
+        located = (s.get("lat"), s.get("lon")) if s.get("lat") is not None else "미정"
+        print(f"  {s['name']}({c}): 선로 {len(my_lines)}개, 배전 {'O' if d else 'X'}, "
+              f"송전 {'O' if t else 'X'}, 차단기 {'O' if b else 'X'}, 위치 {located}")
+    return out
 
+
+def main() -> None:
+    """전체 수집. '--region 영광' 처럼 주면 해당 지역만 다시 수집해 기존 결과에 합친다
+    (이 경우 경계 변전소의 이웃 군 선로는 빠질 수 있으니 정기 갱신은 전체 수집 권장)."""
+    cfg = json.loads(CONFIG.read_text(encoding="utf-8"))
+    only = sys.argv[sys.argv.index("--region") + 1] if "--region" in sys.argv else None
+    regions = [r for r in cfg["regions"] if not only or only in r["name"]]
+    k = Kepco()
+    year = date.today().year
+    subst: dict[str, dict] = {}
+    lines: dict[tuple, dict] = {}
+    metas = [(region, collect_region(k, region, year, subst, lines)) for region in regions]
+    collected = {}
+    for region, meta in metas:
+        for sub in build_outputs(region, meta, subst, lines, year):
+            collected[sub["code"]] = sub
+
+    previous = json.loads(OUT.read_text(encoding="utf-8")).get("substations", []) if OUT.exists() else []
+    prev = {s["code"]: s for s in previous}
+    ordered = []
+    for sub in all_substations(cfg):            # config 순서 유지, 이번에 안 모은 것은 이전 값
+        c = sub["code"]
+        if c in collected:
+            ordered.append(collected[c])
+        elif c in prev:
+            ordered.append(prev[c])
     OUT.write_text(json.dumps({"collected": date.today().isoformat(),
                                "source": "한전ON(online.kepco.co.kr) 재생e 연계 여유용량·배전선로 여유용량·차단기 여유 Bay·전력공급 여유용량",
-                               "substations": out}, ensure_ascii=False, indent=1), encoding="utf-8")
-    print(f"저장 {OUT} (한전ON 호출 {k.calls}회)")
+                               "substations": ordered}, ensure_ascii=False, indent=1), encoding="utf-8")
+    print(f"저장 {OUT} (변전소 {len(ordered)}곳, 한전ON 호출 {k.calls}회)")
 
 
 if __name__ == "__main__":

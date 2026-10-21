@@ -1,13 +1,27 @@
 {
-  "_설명": "지도에 표시할 변전소. code=한전ON 변전소코드(PSPWPMNGNO). 위치는 address(지번, VWorld로 좌표 변환) 또는 lat/lon. 위치 근거 없으면 비워 두고 지도에 찍지 않는다(목록에만 표시).",
-  "sido_code": "52",
-  "sigg_code": "790",
-  "addr": {"do": "전북특별자치도", "si": "-기타지역", "gu": "고창군"},
-  "substations": [
-    {"code": "2678", "name": "고창", "status": "운영",
-     "address": "전북특별자치도 고창군 고창읍 성두리 442-2", "location_source": "VWorld 장소검색 '고창변전소'"},
-    {"code": "D264", "name": "서고창", "status": "운영", "address": "", "location_source": ""},
-    {"code": "E275", "name": "남고창", "status": "건설중", "address": "", "location_source": ""},
-    {"code": "E590", "name": "고창#3", "status": "건설중", "address": "", "location_source": ""}
+  "_설명": "지도에 표시할 변전소(지역 묶음별). code=한전ON 변전소코드(PSPWPMNGNO). sido/sigg_code=한전ON 송전·차단기·공급 조회 지역코드, addr=배전선로 주소조회용 표기(한전ON 배전 화면 기준). 위치는 lat/lon 또는 address(VWorld 좌표 변환). 위치 근거 없으면 비워 두고 지도에 찍지 않는다(목록에만 표시).",
+  "regions": [
+    {
+      "name": "전북 고창군",
+      "sido_code": "52", "sigg_code": "790",
+      "addr": {"do": "전북특별자치도", "si": "-기타지역", "gu": "고창군"},
+      "substations": [
+        {"code": "2678", "name": "고창", "status": "운영",
+         "address": "전북특별자치도 고창군 고창읍 성두리 442-2", "location_source": "VWorld 장소검색 '고창변전소'"},
+        {"code": "D264", "name": "서고창", "status": "운영",
+         "address": "전북특별자치도 고창군 상하면 용정리 1268-4", "location_source": "사용자 제공(명사십리로 50, 한국전력공사)"},
+        {"code": "E275", "name": "남고창", "status": "건설중", "address": "", "location_source": ""},
+        {"code": "E590", "name": "고창#3", "status": "건설중", "address": "", "location_source": ""}
+      ]
+    },
+    {
+      "name": "전남 영광군",
+      "sido_code": "12", "sigg_code": "830",
+      "addr": {"do": "전라남도", "si": "-기타지역", "gu": "영광군"},
+      "substations": [
+        {"code": "S615", "name": "홍농", "status": "운영",
+         "address": "전라남도 영광군 홍농읍 칠곡리 575-22", "location_source": "사용자 제공(홍농읍 칠곡리 575-22)"}
+      ]
+    }
   ]
 }

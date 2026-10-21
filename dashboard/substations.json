@@ -6,6 +6,7 @@
    "code": "2678",
    "name": "고창",
    "status": "운영",
+   "region": "전북 고창군",
    "address": "전북특별자치도 고창군 고창읍 성두리 442-2",
    "location_source": "VWorld 장소검색 '고창변전소'",
    "lat": 35.448625,
@@ -313,10 +314,11 @@
    "code": "D264",
    "name": "서고창",
    "status": "운영",
-   "address": "",
-   "location_source": "",
-   "lat": null,
-   "lon": null,
+   "region": "전북 고창군",
+   "address": "전북특별자치도 고창군 상하면 용정리 1268-4",
+   "location_source": "사용자 제공(명사십리로 50, 한국전력공사)",
+   "lat": 35.456189,
+   "lon": 126.446851,
    "emd": "상하면",
    "dist": {
     "name": "서고창",
@@ -477,6 +479,7 @@
    "code": "E275",
    "name": "남고창",
    "status": "건설중",
+   "region": "전북 고창군",
    "address": "",
    "location_source": "",
    "lat": null,
@@ -586,6 +589,7 @@
    "code": "E590",
    "name": "고창#3",
    "status": "건설중",
+   "region": "전북 고창군",
    "address": "",
    "location_source": "",
    "lat": null,
@@ -657,6 +661,160 @@
      {
       "year": 2032,
       "mw": 166.0
+     }
+    ],
+    "kv154": [
+     {
+      "year": 2026,
+      "mw": 0.0
+     },
+     {
+      "year": 2027,
+      "mw": 0.0
+     },
+     {
+      "year": 2028,
+      "mw": 0.0
+     },
+     {
+      "year": 2029,
+      "mw": 0.0
+     },
+     {
+      "year": 2030,
+      "mw": 0.0
+     },
+     {
+      "year": 2031,
+      "mw": 0.0
+     },
+     {
+      "year": 2032,
+      "mw": 0.0
+     }
+    ]
+   }
+  },
+  {
+   "code": "S615",
+   "name": "홍농",
+   "status": "운영",
+   "region": "전남 영광군",
+   "address": "전라남도 영광군 홍농읍 칠곡리 575-22",
+   "location_source": "사용자 제공(홍농읍 칠곡리 575-22)",
+   "lat": 35.386488,
+   "lon": 126.411595,
+   "emd": "법성면",
+   "dist": {
+    "name": "홍농",
+    "capa_kw": 80000.0,
+    "recv_kw": 51283.0,
+    "plan_kw": 42721.0
+   },
+   "lines": [
+    {
+     "mtr": "2",
+     "mtr_capa_kw": 50000.0,
+     "mtr_recv_kw": 38641.0,
+     "mtr_plan_kw": 30079.0,
+     "dl": "사택",
+     "dl_capa_kw": 13000.0,
+     "dl_recv_kw": 17904.0,
+     "dl_plan_kw": 11130.0,
+     "sample": "법성면 삼당리 산73-1"
+    },
+    {
+     "mtr": "2",
+     "mtr_capa_kw": 50000.0,
+     "mtr_recv_kw": 38641.0,
+     "mtr_plan_kw": 30079.0,
+     "dl": "조선",
+     "dl_capa_kw": 12000.0,
+     "dl_recv_kw": 11905.0,
+     "dl_plan_kw": 10616.0,
+     "sample": "홍농읍 계마리 1000"
+    },
+    {
+     "mtr": "2",
+     "mtr_capa_kw": 50000.0,
+     "mtr_recv_kw": 38641.0,
+     "mtr_plan_kw": 30079.0,
+     "dl": "홍농",
+     "dl_capa_kw": 13000.0,
+     "dl_recv_kw": 8832.0,
+     "dl_plan_kw": 8333.0,
+     "sample": "법성면 법성리 1-5"
+    }
+   ],
+   "trans154": {
+    "yearly": [
+     {
+      "year": 2026,
+      "mw": 0.0
+     },
+     {
+      "year": 2027,
+      "mw": 0.0
+     },
+     {
+      "year": 2028,
+      "mw": 0.0
+     },
+     {
+      "year": 2029,
+      "mw": 0.0
+     },
+     {
+      "year": 2030,
+      "mw": 0.0
+     },
+     {
+      "year": 2031,
+      "mw": 0.0
+     },
+     {
+      "year": 2032,
+      "mw": 0.0
+     }
+    ],
+    "permit_req_mw": 4.0,
+    "connect_wait": null
+   },
+   "breaker": {
+    "kv22_free": 0.0,
+    "kv22_total": 8.0,
+    "kv154_free": 0.0,
+    "kv154_total": 4.0
+   },
+   "supply": {
+    "kv22": [
+     {
+      "year": 2026,
+      "mw": 129.0
+     },
+     {
+      "year": 2027,
+      "mw": 128.0
+     },
+     {
+      "year": 2028,
+      "mw": 128.0
+     },
+     {
+      "year": 2029,
+      "mw": 128.0
+     },
+     {
+      "year": 2030,
+      "mw": 127.0
+     },
+     {
+      "year": 2031,
+      "mw": 0.0
+     },
+     {
+      "year": 2032,
+      "mw": 0.0
      }
     ],
     "kv154": [
