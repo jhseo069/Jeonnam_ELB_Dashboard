@@ -1,5 +1,5 @@
 {
- "collected": "2026-10-21",
+ "collected": "2026-10-22",
  "source": "한전ON(online.kepco.co.kr) 재생e 연계 여유용량·배전선로 여유용량·차단기 여유 Bay·전력공급 여유용량",
  "substations": [
   {
@@ -908,6 +908,313 @@
    "plan": null,
    "kv": "154kV",
    "approx": null
+  },
+  {
+   "code": "E440",
+   "name": "장흥",
+   "status": "운영",
+   "region": "전남 장흥군",
+   "address": "전남광주통합특별시 장흥군 장흥읍 금산리 849-2",
+   "location_source": "OpenStreetMap '장흥변전소'(154kV) 위치 + VWorld 지번 확인. 한전ON 표기 '장흥SA' — 장흥군 전 지역 배전 담당",
+   "lat": 34.69817,
+   "lon": 126.92312,
+   "plan": null,
+   "kv": "154kV",
+   "approx": null,
+   "emd": null,
+   "dist": {
+    "name": "장흥SA",
+    "capa_kw": 200000.0,
+    "recv_kw": 248170.0,
+    "plan_kw": 250287.0
+   },
+   "lines": [
+    {
+     "mtr": "1",
+     "mtr_capa_kw": 50000.0,
+     "mtr_recv_kw": 50256.0,
+     "mtr_plan_kw": 52463.0,
+     "dl": "대덕",
+     "dl_capa_kw": 13000.0,
+     "dl_recv_kw": 20132.0,
+     "dl_plan_kw": 19745.0,
+     "sample": "관산읍 남송리 산8-6"
+    },
+    {
+     "mtr": "1",
+     "mtr_capa_kw": 50000.0,
+     "mtr_recv_kw": 50256.0,
+     "mtr_plan_kw": 52463.0,
+     "dl": "덕제",
+     "dl_capa_kw": 12000.0,
+     "dl_recv_kw": 4684.0,
+     "dl_plan_kw": 5281.0,
+     "sample": "장흥읍 남외리 10-5"
+    },
+    {
+     "mtr": "1",
+     "mtr_capa_kw": 50000.0,
+     "mtr_recv_kw": 50256.0,
+     "mtr_plan_kw": 52463.0,
+     "dl": "옹암",
+     "dl_capa_kw": 13000.0,
+     "dl_recv_kw": 12768.0,
+     "dl_plan_kw": 14020.0,
+     "sample": "관산읍 삼산리 산9-7"
+    },
+    {
+     "mtr": "1",
+     "mtr_capa_kw": 50000.0,
+     "mtr_recv_kw": 50256.0,
+     "mtr_plan_kw": 52463.0,
+     "dl": "읍내",
+     "dl_capa_kw": 13000.0,
+     "dl_recv_kw": 569.0,
+     "dl_plan_kw": 1314.0,
+     "sample": "장흥읍 건산리 101-7"
+    },
+    {
+     "mtr": "1",
+     "mtr_capa_kw": 50000.0,
+     "mtr_recv_kw": 50256.0,
+     "mtr_plan_kw": 52463.0,
+     "dl": "회진",
+     "dl_capa_kw": 12000.0,
+     "dl_recv_kw": 12103.0,
+     "dl_plan_kw": 12103.0,
+     "sample": "관산읍 고마리 1"
+    },
+    {
+     "mtr": "2",
+     "mtr_capa_kw": 50000.0,
+     "mtr_recv_kw": 74087.0,
+     "mtr_plan_kw": 74438.0,
+     "dl": "관산",
+     "dl_capa_kw": 13000.0,
+     "dl_recv_kw": 14523.0,
+     "dl_plan_kw": 12992.0,
+     "sample": "관산읍 남송리 100-1"
+    },
+    {
+     "mtr": "2",
+     "mtr_capa_kw": 50000.0,
+     "mtr_recv_kw": 74087.0,
+     "mtr_plan_kw": 74438.0,
+     "dl": "산단",
+     "dl_capa_kw": 13000.0,
+     "dl_recv_kw": 11954.0,
+     "dl_plan_kw": 15115.0,
+     "sample": "장흥읍 삼산리 0-2"
+    },
+    {
+     "mtr": "2",
+     "mtr_capa_kw": 50000.0,
+     "mtr_recv_kw": 74087.0,
+     "mtr_plan_kw": 74438.0,
+     "dl": "안양",
+     "dl_capa_kw": 13000.0,
+     "dl_recv_kw": 15258.0,
+     "dl_plan_kw": 14604.0,
+     "sample": "관산읍 삼산리 0-3"
+    },
+    {
+     "mtr": "2",
+     "mtr_capa_kw": 50000.0,
+     "mtr_recv_kw": 74087.0,
+     "mtr_plan_kw": 74438.0,
+     "dl": "장평",
+     "dl_capa_kw": 13000.0,
+     "dl_recv_kw": 16334.0,
+     "dl_plan_kw": 14704.0,
+     "sample": "부산면 부춘리 산99-3"
+    },
+    {
+     "mtr": "2",
+     "mtr_capa_kw": 50000.0,
+     "mtr_recv_kw": 74087.0,
+     "mtr_plan_kw": 74438.0,
+     "dl": "청용",
+     "dl_capa_kw": 12000.0,
+     "dl_recv_kw": 16018.0,
+     "dl_plan_kw": 17023.0,
+     "sample": "장동면 하산리 산97-6"
+    },
+    {
+     "mtr": "3",
+     "mtr_capa_kw": 50000.0,
+     "mtr_recv_kw": 59767.0,
+     "mtr_plan_kw": 64961.0,
+     "dl": "복흥",
+     "dl_capa_kw": 13000.0,
+     "dl_recv_kw": 18888.0,
+     "dl_plan_kw": 17811.0,
+     "sample": "부산면 호계리 106"
+    },
+    {
+     "mtr": "3",
+     "mtr_capa_kw": 50000.0,
+     "mtr_recv_kw": 59767.0,
+     "mtr_plan_kw": 64961.0,
+     "dl": "수문",
+     "dl_capa_kw": 13000.0,
+     "dl_recv_kw": 12017.0,
+     "dl_plan_kw": 12951.0,
+     "sample": "관산읍 고마리 1"
+    },
+    {
+     "mtr": "3",
+     "mtr_capa_kw": 50000.0,
+     "mtr_recv_kw": 59767.0,
+     "mtr_plan_kw": 64961.0,
+     "dl": "유치",
+     "dl_capa_kw": 13000.0,
+     "dl_recv_kw": 10862.0,
+     "dl_plan_kw": 16199.0,
+     "sample": "부산면 구룡리 1-5"
+    },
+    {
+     "mtr": "4",
+     "mtr_capa_kw": 50000.0,
+     "mtr_recv_kw": 64060.0,
+     "mtr_plan_kw": 58425.0,
+     "dl": "대용량#1",
+     "dl_capa_kw": 18000.0,
+     "dl_recv_kw": 21587.0,
+     "dl_plan_kw": 19587.0,
+     "sample": "장흥읍 관덕리 93-2"
+    },
+    {
+     "mtr": "4",
+     "mtr_capa_kw": 50000.0,
+     "mtr_recv_kw": 64060.0,
+     "mtr_plan_kw": 58425.0,
+     "dl": "부산",
+     "dl_capa_kw": 13000.0,
+     "dl_recv_kw": 12228.0,
+     "dl_plan_kw": 12228.0,
+     "sample": "부산면 구룡리 610-1"
+    },
+    {
+     "mtr": "4",
+     "mtr_capa_kw": 50000.0,
+     "mtr_recv_kw": 64060.0,
+     "mtr_plan_kw": 58425.0,
+     "dl": "진산",
+     "dl_capa_kw": 18000.0,
+     "dl_recv_kw": 19127.0,
+     "dl_plan_kw": 17922.0,
+     "sample": "장동면 만년리 산8-9"
+    }
+   ],
+   "trans154": {
+    "yearly": [],
+    "permit_req_mw": null,
+    "connect_wait": null
+   },
+   "breaker": {
+    "kv22_free": 9.0,
+    "kv22_total": 26.0,
+    "kv154_free": 2.0,
+    "kv154_total": 12.0
+   },
+   "supply": {
+    "kv22": [],
+    "kv154": []
+   }
+  },
+  {
+   "code": "JANGHEUNG2",
+   "name": "장흥#2",
+   "status": "계획",
+   "region": "전남 장흥군",
+   "address": "전남광주통합특별시 장흥군 장동면 북교리 7-1",
+   "location_source": "부지 지번 미공개 — 면 단위 대표위치(장동면행정복지센터). 근거: 한전 송변전 건설 정보공개 '확정 부지: 장흥군 장동면 일원'(경과지(부지) 확정 2026.03)",
+   "lat": 34.749811,
+   "lon": 126.995438,
+   "plan": {
+    "사업명": "154kV 장흥#2S/S 건설사업",
+    "단계": "계획확정 ~ 사업승인 전(부지 확정 2026.03, '26.하 사업시행계획 공고 예정)",
+    "착공": "미정",
+    "가압": "2031.12",
+    "규모": "154kV M.TR 2BANK(최종 4BANK)",
+    "근거": "제10차 장기송변전설비계획(2023.05) · 목적: 장흥지역 재생E 계통연계 · 가압은 사업기간 종료(2031.12) 기준",
+    "출처": "한전 송변전 건설 정보공개 플랫폼(전남, 최종업데이트 2026-09-01)"
+   },
+   "kv": "154kV",
+   "approx": true,
+   "emd": "장동면",
+   "dist": null,
+   "lines": [],
+   "trans154": {
+    "yearly": [],
+    "permit_req_mw": null,
+    "connect_wait": null
+   },
+   "breaker": null,
+   "supply": {
+    "kv22": [],
+    "kv154": []
+   }
+  },
+  {
+   "code": "5028",
+   "name": "신강진",
+   "status": "운영",
+   "region": "전남 장흥군",
+   "address": "전남광주통합특별시 강진군 성전면 월하리 202",
+   "location_source": "OpenStreetMap '신강진변전소'(345kV) 위치 + VWorld 지번 확인. 소재지는 강진군이나 한전ON 장흥군 조회에 포함되는 345kV 변전소",
+   "lat": 34.73045,
+   "lon": 126.70146,
+   "plan": null,
+   "kv": "345kV",
+   "approx": null,
+   "emd": "성전면(강진군)",
+   "dist": null,
+   "lines": [],
+   "trans154": {
+    "yearly": [
+     {
+      "year": 2026,
+      "mw": 0.0
+     },
+     {
+      "year": 2027,
+      "mw": 0.0
+     },
+     {
+      "year": 2028,
+      "mw": 0.0
+     },
+     {
+      "year": 2029,
+      "mw": 0.0
+     },
+     {
+      "year": 2030,
+      "mw": 0.0
+     },
+     {
+      "year": 2031,
+      "mw": 0.0
+     },
+     {
+      "year": 2032,
+      "mw": 0.0
+     }
+    ],
+    "permit_req_mw": 155.0,
+    "connect_wait": null
+   },
+   "breaker": {
+    "kv22_free": 0.0,
+    "kv22_total": 0.0,
+    "kv154_free": 2.0,
+    "kv154_total": 18.0
+   },
+   "supply": {
+    "kv22": [],
+    "kv154": []
+   }
   }
  ]
 }

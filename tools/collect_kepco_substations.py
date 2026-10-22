@@ -120,6 +120,8 @@ def locate_only() -> None:
         s["name"], s["status"], s["region"] = cs["name"], cs["status"], region_of[c]
         for k in ("address", "location_source", "lat", "lon", "plan", "kv", "approx"):
             s[k] = cs.get(k)
+        if cs.get("emd"):
+            s["emd"] = cs["emd"]
         ordered.append(s)
         print(f"{s['name']}: {s.get('lat')}, {s.get('lon')}  ({s.get('address') or '위치 미정'})")
     data["substations"] = ordered
@@ -131,9 +133,14 @@ def collect_region(k: Kepco, region: dict, year: int, subst: dict, lines: dict) 
     print(f"[{region['name']}]")
 
     # 1) 154kV 송전망 여유 — 연도 인자는 조회 기간 끝 해(화면 기본값과 동일하게 +6)
-    trans = {r["PSPWPMNGNO"]: r for r in k.post("/ew/cpct/retrieveTransCpct154kV", {
-        "dma_reqParam": {"sido_code": sido, "sigg_code": sigg, "emd_code": "", "year": str(year + 6)}
-    }).get("dlt_resultList", [])}
+    # 가끔 빈 목록을 돌려주므로(2026-10-22 장흥 조회) 빈 응답이면 한 번 더 조회한다
+    for _ in range(3):
+        trans = {r["PSPWPMNGNO"]: r for r in k.post("/ew/cpct/retrieveTransCpct154kV", {
+            "dma_reqParam": {"sido_code": sido, "sigg_code": sigg, "emd_code": "", "year": str(year + 6)}
+        }).get("dlt_resultList", [])}
+        if trans:
+            break
+        time.sleep(3)
     # 2) 차단기 여유 Bay (B009=22.9kV, B005=154kV)
     cbr = {r["S_CD"]: r for r in k.post("/ew/cpct/retrieveCbrOvplsInfo", {
         "dma_reqParam": {"sido_code": sido, "sigg_code": sigg, "emd_code": ""}
@@ -198,7 +205,7 @@ def build_outputs(region: dict, meta: dict, subst: dict, lines: dict, year: int)
             "address": s.get("address", ""), "location_source": s.get("location_source", ""),
             "lat": s.get("lat"), "lon": s.get("lon"), "plan": s.get("plan"),
             "kv": s.get("kv"), "approx": s.get("approx"),
-            "emd": t.get("EMD_NM") or b.get("EMD_NM"),
+            "emd": s.get("emd") or t.get("EMD_NM") or b.get("EMD_NM"),   # config 값 우선(한전ON 읍면이 실제 소재지와 다른 경우)
             "dist": d or None,
             "lines": my_lines,
             "trans154": {"yearly": yearly(t, base_year) if t else [],

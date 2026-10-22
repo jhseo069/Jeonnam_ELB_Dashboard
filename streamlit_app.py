@@ -125,7 +125,7 @@ SORT_OPTIONS = {
 }
 sort_sel = st.sidebar.selectbox("목록 정렬", list(SORT_OPTIONS))
 
-show_subst = st.sidebar.checkbox("변전소 표시 (고창·홍농, 한전ON)", value=True)
+show_subst = st.sidebar.checkbox("변전소 표시 (고창·홍농·장흥, 한전ON)", value=True)
 st.sidebar.caption("지도의 점을 클릭하면 발전소 정보가, 마름모를 클릭하면 변전소 계통 여유가 표시됩니다.")
 
 
@@ -189,7 +189,7 @@ else:
 # ── 표 ──────────────────────────────────────────────────────────────
 # ── 변전소 계통 여유 (한전ON) ──────────────────────────────────────────
 if show_subst and subst_data.get("substations"):
-    st.markdown("##### 변전소 계통 여유 (고창·홍농)")
+    st.markdown("##### 변전소 계통 여유 (고창·홍농·장흥)")
     def _free(s):
         d = s.get("dist") or {}
         if d.get("capa_kw") is None or d.get("recv_kw") is None:

@@ -92,7 +92,14 @@ function iconStyle(color){return new ol.style.Style({image:new ol.style.Circle({
 function substFree(s){ const d=s.dist; if(!d||d.capa_kw==null||d.recv_kw==null) return null; return (d.capa_kw-d.recv_kw)/1000; }
 // 변전소 핀(번개 아이콘). 색: 초록=여유 있음, 빨강=여유 없음, 회색=한전ON 자료 없음(건설·계획 중).
 // 154kV=보통 핀 + '154' 흰 배지, 345kV=큰 핀·남색 테두리 + '345' 남색 배지. 위치 미확정은 점선 테두리.
-function substColor(s){ const f=substFree(s); return f==null?"#7a838c":(f>0?"#1f9d55":"#e03131"); }
+function substColor(s){
+  const f=substFree(s);
+  if(f!=null) return f>0?"#1f9d55":"#e03131";
+  // 배전 자료 없는 운영 변전소(345kV 송전용 등)는 154kV 송전망 여유로 판정
+  const ty=(s.trans154||{}).yearly||[];
+  if(s.status==="운영"&&ty.length) return ty.some(y=>y.mw>0)?"#1f9d55":"#e03131";
+  return "#7a838c";
+}
 function substPinSvg(color, kv345, dashed){
   const W=kv345?54:36, H=kv345?64:44, sc=kv345?1.45:1, rim=kv345?"#1c2b6b":"#ffffff", rw=kv345?3:2.5;
   const badgeFill=kv345?"#1c2b6b":"#ffffff", badgeText=kv345?"#ffffff":color, label=kv345?"345":"154";
@@ -129,7 +136,7 @@ function showSubstPopup(s){
     h+=`<div class="pop-row"><span class="k">변전소 전체 여유</span><span class="v sub-big ${free>0?"pos":"neg"}">${Math.max(0,free).toFixed(1)} MW</span></div>`+
       row("접속기준용량",mw(d.capa_kw)+" MW")+row("접수기준 접속용량",mw(d.recv_kw)+" MW")+
       row("접속계획 반영 접속용량",mw(d.plan_kw)+" MW")+(over>0?row("초과(과부하)",`<span class="neg">${over.toFixed(1)} MW</span>`):"");
-  } else h+=row("배전 접속 정보","한전ON 미제공(건설·계획 중)");
+  } else h+=row("배전 접속 정보", s.status==="운영"?"배전 미담당(송전용 변전소)":"한전ON 미제공(건설·계획 중)");
   if(s.kv) h+=row("전압",esc(s.kv));
   if(s.approx) h+=row("위치",`<span class="neg">부지 지번 미공개 · 면 단위 대표위치</span>`);
   const pl=s.plan;
