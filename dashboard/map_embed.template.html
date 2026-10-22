@@ -164,8 +164,9 @@ function showSubstPopup(s){
   }
   if((s.lines||[]).length){
     h+=`<div class="sub-sec">배전선로 (${s.lines.length}개, MW)</div><table class="sub-tbl"><tr><th>주변압기·선로</th><th>기준</th><th>접수</th><th>여유</th></tr>`+
-      s.lines.map(l=>{const f=(l.dl_capa_kw-l.dl_recv_kw)/1000;
-        return `<tr><td>#${esc(l.mtr)} ${esc(l.dl)}</td><td>${mw(l.dl_capa_kw)}</td><td>${mw(l.dl_recv_kw)}</td><td class="${f>0?"pos":"neg"}">${Math.max(0,f).toFixed(1)}</td></tr>`;}).join("")+`</table>`;
+      s.lines.map(l=>{const f=l.dl_capa_kw!=null?(l.dl_capa_kw-l.dl_recv_kw)/1000:(l.dl_free_kw||0)/1000;
+        return `<tr><td>#${esc(l.mtr)} ${esc(l.dl)}${l.source?"*":""}</td><td>${mw(l.dl_capa_kw)}</td><td>${mw(l.dl_recv_kw)}</td><td class="${f>0?"pos":"neg"}">${Math.max(0,f).toFixed(1)}</td></tr>`;}).join("")+`</table>`+
+      (s.lines.some(l=>l.source)?`<div class="pop-note">* 전력데이터개방포털 분산전원연계정보로 보강한 선로(기준용량 미제공, 접수=누적 연계량)</div>`:"");
   }
   if(s.location_source) h+=`<div class="pop-note">위치: ${esc(s.location_source)}</div>`;
   h+=`<div class="pop-note">출처: 한전ON 공개 계통정보 (수집 ${esc(SUBST_DATA.collected||"")}). 접속 가능 여부를 확정하는 자료가 아닌 참고자료이며, 변전소·주변압기·배전선로 모두 여유가 있어야 접속 가능.</div></div>`;

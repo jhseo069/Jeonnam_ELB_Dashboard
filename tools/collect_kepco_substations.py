@@ -15,6 +15,10 @@ r"""한전ON 공개 계통정보로 변전소 여유용량을 수집한다 → d
 실행: .venv\Scripts\python.exe tools\collect_kepco_substations.py              (전체)
       .venv\Scripts\python.exe tools\collect_kepco_substations.py --region 영광   (해당 지역만, 나머지는 이전 값 유지)
       .venv\Scripts\python.exe tools\collect_kepco_substations.py --locate-only   (위치만 갱신, 한전ON 재조회 없음)
+      .venv\Scripts\python.exe tools\collect_kepco_substations.py --bigdata-only  (분산전원연계정보로 빠진 선로만 보강)
+
+보강: 전력데이터개방포털 분산전원연계정보(.env KEPCO_BIGDATA_API_KEY, config bigdata_code)로
+      표본 조회에서 빠진 배전선로를 채운다(전체 수집 때 자동 실행).
 """
 
 from __future__ import annotations
@@ -223,6 +227,74 @@ def build_outputs(region: dict, meta: dict, subst: dict, lines: dict, year: int)
     return out
 
 
+BIGDATA_URL = "https://bigdata.kepco.co.kr/openapi/v1/dispersedGeneration.do"
+
+
+def bigdata_rows(key: str, metro: str, city: str) -> list[dict]:
+    """전력데이터개방포털 분산전원연계정보(군 단위 전체 선로). 법정동 옛 코드 사용(전남=46, 영광 870, 장흥 800).
+    오류 메시지에 인증키가 섞이지 않도록 URL 은 출력하지 않는다."""
+    try:
+        r = requests.get(BIGDATA_URL, params={"metroCd": metro, "cityCd": city, "apiKey": key,
+                                              "returnType": "json"}, timeout=120)
+        j = r.json()
+    except Exception as e:
+        raise RuntimeError(f"분산전원연계 조회 실패({metro}/{city}): {type(e).__name__}") from None
+    if r.status_code != 200:
+        raise RuntimeError(f"분산전원연계 조회 실패({metro}/{city}): HTTP {r.status_code} {j.get('errMsg', '')}")
+    return j.get("data", [])
+
+
+def supplement_from_bigdata(cfg: dict, subs: list[dict]) -> None:
+    """한전ON 주소 표본 조회에서 빠진 배전선로를 분산전원연계정보로 채운다.
+    이 API 는 용량(js*)을 0으로 주고 누적 연계량·여유(vol)만 주므로, 새로 넣는 선로는
+    기준용량 없이 접수(누적)·여유만 기록한다. 변전소 누적 연계량이 한전ON 값과 다른 행은
+    같은 코드의 다른 설비로 보고 넣지 않는다(예: 홍농 코드의 '연구'·'상하' 135.7MW)."""
+    from dotenv import dotenv_values
+    env = dotenv_values(ROOT / ".env")
+    key = (env.get("KEPCO_BIGDATA_API_KEY") or env.get("KEPCO_BIGDATA_API") or "").strip().strip('"')
+    if not key:
+        print("  (분산전원연계정보: .env 에 KEPCO_BIGDATA_API_KEY 없음 — 건너뜀)")
+        return
+    by_code = {s["code"]: s for s in subs}
+    seen = set()
+    for region in cfg["regions"]:
+        code = region.get("bigdata_code")
+        if not code or tuple(code) in seen:
+            continue
+        seen.add(tuple(code))
+        rows = bigdata_rows(key, *code)
+        added = skipped = 0
+        for r in rows:
+            s = by_code.get(r.get("substCd"))
+            if not s or not s.get("dist"):
+                continue
+            if abs((_num(r.get("substPwr")) or 0) - (s["dist"].get("recv_kw") or 0)) > 1:
+                skipped += 1
+                continue
+            mtr, dl = str(r.get("mtrNo")), r.get("dlNm")
+            hit = next((l for l in s["lines"] if l["mtr"] == mtr and l["dl"] == dl), None)
+            if hit:
+                hit["dl_free_kw"] = _num(r.get("vol3"))
+                continue
+            s["lines"].append({
+                "mtr": mtr, "mtr_capa_kw": None, "mtr_recv_kw": _num(r.get("mtrPwr")), "mtr_plan_kw": None,
+                "dl": dl, "dl_capa_kw": None, "dl_recv_kw": _num(r.get("dlPwr")), "dl_plan_kw": None,
+                "dl_free_kw": _num(r.get("vol3")), "source": "전력데이터개방포털 분산전원연계정보"})
+            added += 1
+        for s in subs:
+            s["lines"].sort(key=lambda v: (v["mtr"], v["dl"] or ""))
+        print(f"  분산전원연계정보 {region['name']}({'/'.join(code)}): {len(rows)}행, 빠진 선로 {added}개 추가, "
+              f"누적량 불일치 {skipped}행 제외")
+
+
+def bigdata_only() -> None:
+    """한전ON 재조회 없이 기존 substations.json 에 분산전원연계정보 선로만 보강한다."""
+    cfg = json.loads(CONFIG.read_text(encoding="utf-8"))
+    data = json.loads(OUT.read_text(encoding="utf-8"))
+    supplement_from_bigdata(cfg, data["substations"])
+    OUT.write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding="utf-8")
+
+
 def main() -> None:
     """전체 수집. '--region 영광' 처럼 주면 해당 지역만 다시 수집해 기존 결과에 합친다
     (이 경우 경계 변전소의 이웃 군 선로는 빠질 수 있으니 정기 갱신은 전체 수집 권장)."""
@@ -248,6 +320,7 @@ def main() -> None:
             ordered.append(collected[c])
         elif c in prev:
             ordered.append(prev[c])
+    supplement_from_bigdata({"regions": regions}, [s for s in ordered if s["code"] in collected])
     OUT.write_text(json.dumps({"collected": date.today().isoformat(),
                                "source": "한전ON(online.kepco.co.kr) 재생e 연계 여유용량·배전선로 여유용량·차단기 여유 Bay·전력공급 여유용량",
                                "substations": ordered}, ensure_ascii=False, indent=1), encoding="utf-8")
@@ -255,4 +328,9 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    locate_only() if "--locate-only" in sys.argv else main()
+    if "--locate-only" in sys.argv:
+        locate_only()
+    elif "--bigdata-only" in sys.argv:
+        bigdata_only()
+    else:
+        main()

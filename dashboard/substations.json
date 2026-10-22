@@ -28,7 +28,8 @@
      "dl_capa_kw": 12000.0,
      "dl_recv_kw": 21302.0,
      "dl_plan_kw": 18839.0,
-     "sample": "고창읍 도산리 산7-4"
+     "sample": "고창읍 도산리 산7-4",
+     "dl_free_kw": 0.0
     },
     {
      "mtr": "1",
@@ -39,7 +40,8 @@
      "dl_capa_kw": 18000.0,
      "dl_recv_kw": 35955.0,
      "dl_plan_kw": 33765.0,
-     "sample": "고수면 우평리 114-5"
+     "sample": "고수면 우평리 114-5",
+     "dl_free_kw": 0.0
     },
     {
      "mtr": "1",
@@ -50,7 +52,8 @@
      "dl_capa_kw": 13000.0,
      "dl_recv_kw": 37509.0,
      "dl_plan_kw": 33335.0,
-     "sample": "고수면 봉산리 산50-1"
+     "sample": "고수면 봉산리 산50-1",
+     "dl_free_kw": 0.0
     },
     {
      "mtr": "1",
@@ -61,7 +64,8 @@
      "dl_capa_kw": 19000.0,
      "dl_recv_kw": 65842.0,
      "dl_plan_kw": 63055.0,
-     "sample": "고수면 남산리 551-3"
+     "sample": "고수면 남산리 551-3",
+     "dl_free_kw": 0.0
     },
     {
      "mtr": "2",
@@ -72,7 +76,8 @@
      "dl_capa_kw": 19000.0,
      "dl_recv_kw": 44182.0,
      "dl_plan_kw": 40113.0,
-     "sample": "고수면 남산리 0-11"
+     "sample": "고수면 남산리 0-11",
+     "dl_free_kw": 0.0
     },
     {
      "mtr": "2",
@@ -83,7 +88,8 @@
      "dl_capa_kw": 19000.0,
      "dl_recv_kw": 21604.0,
      "dl_plan_kw": 16769.0,
-     "sample": "고창읍 교촌리 100-13"
+     "sample": "고창읍 교촌리 100-13",
+     "dl_free_kw": 0.0
     },
     {
      "mtr": "2",
@@ -94,7 +100,8 @@
      "dl_capa_kw": 13000.0,
      "dl_recv_kw": 10646.0,
      "dl_plan_kw": 8400.0,
-     "sample": "고창읍 덕정리 425-13"
+     "sample": "고창읍 덕정리 425-13",
+     "dl_free_kw": 2354.0
     },
     {
      "mtr": "2",
@@ -105,7 +112,8 @@
      "dl_capa_kw": 13000.0,
      "dl_recv_kw": 32178.0,
      "dl_plan_kw": 31231.0,
-     "sample": "고창읍 성두리 441-2"
+     "sample": "고창읍 성두리 441-2",
+     "dl_free_kw": 0.0
     },
     {
      "mtr": "3",
@@ -116,7 +124,8 @@
      "dl_capa_kw": 13000.0,
      "dl_recv_kw": 12418.0,
      "dl_plan_kw": 10676.0,
-     "sample": "고수면 남산리 산9-2"
+     "sample": "고수면 남산리 산9-2",
+     "dl_free_kw": 582.0
     },
     {
      "mtr": "3",
@@ -127,7 +136,8 @@
      "dl_capa_kw": 19000.0,
      "dl_recv_kw": 34921.0,
      "dl_plan_kw": 31254.0,
-     "sample": "고수면 두평리 100-1"
+     "sample": "고수면 두평리 100-1",
+     "dl_free_kw": 0.0
     },
     {
      "mtr": "3",
@@ -138,7 +148,8 @@
      "dl_capa_kw": 12000.0,
      "dl_recv_kw": 198.0,
      "dl_plan_kw": 397.0,
-     "sample": "고창읍 노동리 1-15"
+     "sample": "고창읍 노동리 1-15",
+     "dl_free_kw": 11802.0
     },
     {
      "mtr": "3",
@@ -149,7 +160,8 @@
      "dl_capa_kw": 19000.0,
      "dl_recv_kw": 35537.0,
      "dl_plan_kw": 33360.0,
-     "sample": "신림면 법지리 429-12"
+     "sample": "신림면 법지리 429-12",
+     "dl_free_kw": 0.0
     },
     {
      "mtr": "4",
@@ -160,7 +172,8 @@
      "dl_capa_kw": 13000.0,
      "dl_recv_kw": 31326.0,
      "dl_plan_kw": 27024.0,
-     "sample": "고창읍 덕정리 10"
+     "sample": "고창읍 덕정리 10",
+     "dl_free_kw": 0.0
     },
     {
      "mtr": "4",
@@ -171,7 +184,8 @@
      "dl_capa_kw": 13000.0,
      "dl_recv_kw": 10021.0,
      "dl_plan_kw": 7742.0,
-     "sample": "고창읍 덕산리 367-16"
+     "sample": "고창읍 덕산리 367-16",
+     "dl_free_kw": 2979.0
     },
     {
      "mtr": "4",
@@ -182,7 +196,8 @@
      "dl_capa_kw": 12000.0,
      "dl_recv_kw": 20573.0,
      "dl_plan_kw": 19882.0,
-     "sample": "고창읍 성두리 00-00"
+     "sample": "고창읍 성두리 00-00",
+     "dl_free_kw": 0.0
     },
     {
      "mtr": "4",
@@ -193,7 +208,8 @@
      "dl_capa_kw": 19000.0,
      "dl_recv_kw": 54856.0,
      "dl_plan_kw": 49802.0,
-     "sample": "고수면 우평리 산52"
+     "sample": "고수면 우평리 산52",
+     "dl_free_kw": 0.0
     },
     {
      "mtr": "4",
@@ -204,7 +220,8 @@
      "dl_capa_kw": 13000.0,
      "dl_recv_kw": 15914.0,
      "dl_plan_kw": 15007.0,
-     "sample": "부안면 검산리 664-1"
+     "sample": "부안면 검산리 664-1",
+     "dl_free_kw": 0.0
     }
    ],
    "trans154": {
@@ -339,7 +356,8 @@
      "dl_capa_kw": 19000.0,
      "dl_recv_kw": 26268.0,
      "dl_plan_kw": 23270.0,
-     "sample": "공음면 구암리 1000"
+     "sample": "공음면 구암리 1000",
+     "dl_free_kw": 0.0
     },
     {
      "mtr": "1",
@@ -350,7 +368,8 @@
      "dl_capa_kw": 12000.0,
      "dl_recv_kw": 34490.0,
      "dl_plan_kw": 32307.0,
-     "sample": "공음면 두암리 1003"
+     "sample": "공음면 두암리 1003",
+     "dl_free_kw": 0.0
     },
     {
      "mtr": "1",
@@ -361,7 +380,8 @@
      "dl_capa_kw": 13000.0,
      "dl_recv_kw": 13885.0,
      "dl_plan_kw": 10655.0,
-     "sample": "상하면 용정리 1023"
+     "sample": "상하면 용정리 1023",
+     "dl_free_kw": 0.0
     },
     {
      "mtr": "1",
@@ -372,7 +392,8 @@
      "dl_capa_kw": 12000.0,
      "dl_recv_kw": 30608.0,
      "dl_plan_kw": 30111.0,
-     "sample": "무장면 교흥리 530"
+     "sample": "무장면 교흥리 530",
+     "dl_free_kw": 0.0
     }
    ],
    "trans154": {
@@ -770,6 +791,18 @@
    },
    "lines": [
     {
+     "mtr": "1",
+     "mtr_capa_kw": null,
+     "mtr_recv_kw": 12642.0,
+     "mtr_plan_kw": null,
+     "dl": "열병합",
+     "dl_capa_kw": null,
+     "dl_recv_kw": 9900.0,
+     "dl_plan_kw": null,
+     "dl_free_kw": 100.0,
+     "source": "전력데이터개방포털 분산전원연계정보"
+    },
+    {
      "mtr": "2",
      "mtr_capa_kw": 50000.0,
      "mtr_recv_kw": 38641.0,
@@ -778,7 +811,8 @@
      "dl_capa_kw": 13000.0,
      "dl_recv_kw": 17904.0,
      "dl_plan_kw": 11130.0,
-     "sample": "법성면 삼당리 산73-1"
+     "sample": "법성면 삼당리 산73-1",
+     "dl_free_kw": 0.0
     },
     {
      "mtr": "2",
@@ -789,7 +823,8 @@
      "dl_capa_kw": 12000.0,
      "dl_recv_kw": 11905.0,
      "dl_plan_kw": 10616.0,
-     "sample": "홍농읍 계마리 1000"
+     "sample": "홍농읍 계마리 1000",
+     "dl_free_kw": 95.0
     },
     {
      "mtr": "2",
@@ -800,7 +835,8 @@
      "dl_capa_kw": 13000.0,
      "dl_recv_kw": 8832.0,
      "dl_plan_kw": 8333.0,
-     "sample": "법성면 법성리 1-5"
+     "sample": "법성면 법성리 1-5",
+     "dl_free_kw": 4168.0
     }
    ],
    "trans154": {
@@ -938,7 +974,8 @@
      "dl_capa_kw": 13000.0,
      "dl_recv_kw": 20132.0,
      "dl_plan_kw": 19745.0,
-     "sample": "관산읍 남송리 산8-6"
+     "sample": "관산읍 남송리 산8-6",
+     "dl_free_kw": 0.0
     },
     {
      "mtr": "1",
@@ -949,7 +986,8 @@
      "dl_capa_kw": 12000.0,
      "dl_recv_kw": 4684.0,
      "dl_plan_kw": 5281.0,
-     "sample": "장흥읍 남외리 10-5"
+     "sample": "장흥읍 남외리 10-5",
+     "dl_free_kw": 7316.0
     },
     {
      "mtr": "1",
@@ -960,7 +998,8 @@
      "dl_capa_kw": 13000.0,
      "dl_recv_kw": 12768.0,
      "dl_plan_kw": 14020.0,
-     "sample": "관산읍 삼산리 산9-7"
+     "sample": "관산읍 삼산리 산9-7",
+     "dl_free_kw": 232.0
     },
     {
      "mtr": "1",
@@ -971,7 +1010,8 @@
      "dl_capa_kw": 13000.0,
      "dl_recv_kw": 569.0,
      "dl_plan_kw": 1314.0,
-     "sample": "장흥읍 건산리 101-7"
+     "sample": "장흥읍 건산리 101-7",
+     "dl_free_kw": 12431.0
     },
     {
      "mtr": "1",
@@ -982,7 +1022,8 @@
      "dl_capa_kw": 12000.0,
      "dl_recv_kw": 12103.0,
      "dl_plan_kw": 12103.0,
-     "sample": "관산읍 고마리 1"
+     "sample": "관산읍 고마리 1",
+     "dl_free_kw": 0.0
     },
     {
      "mtr": "2",
@@ -993,7 +1034,8 @@
      "dl_capa_kw": 13000.0,
      "dl_recv_kw": 14523.0,
      "dl_plan_kw": 12992.0,
-     "sample": "관산읍 남송리 100-1"
+     "sample": "관산읍 남송리 100-1",
+     "dl_free_kw": 0.0
     },
     {
      "mtr": "2",
@@ -1004,7 +1046,8 @@
      "dl_capa_kw": 13000.0,
      "dl_recv_kw": 11954.0,
      "dl_plan_kw": 15115.0,
-     "sample": "장흥읍 삼산리 0-2"
+     "sample": "장흥읍 삼산리 0-2",
+     "dl_free_kw": 1046.0
     },
     {
      "mtr": "2",
@@ -1015,7 +1058,8 @@
      "dl_capa_kw": 13000.0,
      "dl_recv_kw": 15258.0,
      "dl_plan_kw": 14604.0,
-     "sample": "관산읍 삼산리 0-3"
+     "sample": "관산읍 삼산리 0-3",
+     "dl_free_kw": 0.0
     },
     {
      "mtr": "2",
@@ -1026,7 +1070,8 @@
      "dl_capa_kw": 13000.0,
      "dl_recv_kw": 16334.0,
      "dl_plan_kw": 14704.0,
-     "sample": "부산면 부춘리 산99-3"
+     "sample": "부산면 부춘리 산99-3",
+     "dl_free_kw": 0.0
     },
     {
      "mtr": "2",
@@ -1037,7 +1082,8 @@
      "dl_capa_kw": 12000.0,
      "dl_recv_kw": 16018.0,
      "dl_plan_kw": 17023.0,
-     "sample": "장동면 하산리 산97-6"
+     "sample": "장동면 하산리 산97-6",
+     "dl_free_kw": 0.0
     },
     {
      "mtr": "3",
@@ -1048,7 +1094,8 @@
      "dl_capa_kw": 13000.0,
      "dl_recv_kw": 18888.0,
      "dl_plan_kw": 17811.0,
-     "sample": "부산면 호계리 106"
+     "sample": "부산면 호계리 106",
+     "dl_free_kw": 0.0
     },
     {
      "mtr": "3",
@@ -1059,7 +1106,8 @@
      "dl_capa_kw": 13000.0,
      "dl_recv_kw": 12017.0,
      "dl_plan_kw": 12951.0,
-     "sample": "관산읍 고마리 1"
+     "sample": "관산읍 고마리 1",
+     "dl_free_kw": 983.0
     },
     {
      "mtr": "3",
@@ -1070,7 +1118,20 @@
      "dl_capa_kw": 13000.0,
      "dl_recv_kw": 10862.0,
      "dl_plan_kw": 16199.0,
-     "sample": "부산면 구룡리 1-5"
+     "sample": "부산면 구룡리 1-5",
+     "dl_free_kw": 2138.0
+    },
+    {
+     "mtr": "4",
+     "mtr_capa_kw": null,
+     "mtr_recv_kw": 64060.0,
+     "mtr_plan_kw": null,
+     "dl": "기동",
+     "dl_capa_kw": null,
+     "dl_recv_kw": 11118.0,
+     "dl_plan_kw": null,
+     "dl_free_kw": 882.0,
+     "source": "전력데이터개방포털 분산전원연계정보"
     },
     {
      "mtr": "4",
@@ -1081,7 +1142,8 @@
      "dl_capa_kw": 18000.0,
      "dl_recv_kw": 21587.0,
      "dl_plan_kw": 19587.0,
-     "sample": "장흥읍 관덕리 93-2"
+     "sample": "장흥읍 관덕리 93-2",
+     "dl_free_kw": 0.0
     },
     {
      "mtr": "4",
@@ -1092,7 +1154,8 @@
      "dl_capa_kw": 13000.0,
      "dl_recv_kw": 12228.0,
      "dl_plan_kw": 12228.0,
-     "sample": "부산면 구룡리 610-1"
+     "sample": "부산면 구룡리 610-1",
+     "dl_free_kw": 772.0
     },
     {
      "mtr": "4",
@@ -1103,7 +1166,8 @@
      "dl_capa_kw": 18000.0,
      "dl_recv_kw": 19127.0,
      "dl_plan_kw": 17922.0,
-     "sample": "장동면 만년리 산8-9"
+     "sample": "장동면 만년리 산8-9",
+     "dl_free_kw": 0.0
     }
    ],
    "trans154": {
