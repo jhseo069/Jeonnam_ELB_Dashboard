@@ -122,7 +122,7 @@ def locate_only() -> None:
         s = have.get(c) or {"code": c, "emd": None, "dist": None, "lines": [],
                             "trans154": {"yearly": []}, "breaker": None, "supply": {}}
         s["name"], s["status"], s["region"] = cs["name"], cs["status"], region_of[c]
-        for k in ("address", "location_source", "lat", "lon", "plan", "kv", "approx"):
+        for k in ("address", "location_source", "lat", "lon", "plan", "kv", "approx", "tlines"):
             s[k] = cs.get(k)
         if cs.get("emd"):
             s["emd"] = cs["emd"]
@@ -208,7 +208,7 @@ def build_outputs(region: dict, meta: dict, subst: dict, lines: dict, year: int)
             "code": c, "name": s["name"], "status": s["status"], "region": region["name"],
             "address": s.get("address", ""), "location_source": s.get("location_source", ""),
             "lat": s.get("lat"), "lon": s.get("lon"), "plan": s.get("plan"),
-            "kv": s.get("kv"), "approx": s.get("approx"),
+            "kv": s.get("kv"), "approx": s.get("approx"), "tlines": s.get("tlines"),
             "emd": s.get("emd") or t.get("EMD_NM") or b.get("EMD_NM"),   # config 값 우선(한전ON 읍면이 실제 소재지와 다른 경우)
             "dist": d or None,
             "lines": my_lines,
